@@ -11,7 +11,15 @@ function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
     (state) => state.isAuthenticated
   );
 
+  const isInitializing = useAuthStore(
+    (state) => state.isInitializing
+  );
+
   const user = useAuthStore((state) => state.user);
+
+  if (isInitializing) {
+    return null;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;

@@ -11,7 +11,34 @@ import ResetPassword from './features/auth/pages/ResetPassword';
 
 import ProtectedRoute from "./features/auth/components/ProctectedRoute";
 
+import { useEffect } from "react";
+import { refreshAccessToken } from "./api/refresh.api";
+import useAuthStore from "./store/auth.store";
+
 function App(){
+
+  const login = useAuthStore((state)=>state.login);
+  const setInitializing = useAuthStore((state)=>state.setInitializing);
+
+   useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const response = await refreshAccessToken();
+
+        login(
+          response.accessToken,
+          response.user
+        );
+      } catch {
+        // No valid refresh session.
+        // User remains logged out.
+      } finally {
+        setInitializing(false);
+      }
+    };
+
+    restoreSession();
+  }, [login, setInitializing]);
   return(
     <Routes>
 
