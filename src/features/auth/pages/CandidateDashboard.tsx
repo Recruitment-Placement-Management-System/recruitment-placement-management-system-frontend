@@ -1,5 +1,9 @@
-
+import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+
+import { logout } from '../../../api/auth.api';
+import useAuthStore from '../../../store/auth.store';
+
 import {
   LayoutDashboard,
   UserRound,
@@ -25,8 +29,6 @@ import {
   LogOut,
   Sparkles,
 } from 'lucide-react';
-
-
 
 const navigation = [
   { label: 'Dashboard', icon: LayoutDashboard },
@@ -138,6 +140,7 @@ function BrandLogo() {
         <p className="text-[21px] font-bold tracking-[-0.7px] text-[#172033]">
           R&PMS
         </p>
+
         <p className="mt-1 text-[9px] font-semibold tracking-[1.5px] text-[#7c879e]">
           CANDIDATE PORTAL
         </p>
@@ -157,9 +160,7 @@ function Sidebar({
   open: boolean;
   onClose: () => void;
 }) {
-  const renderNavigation = (
-    items: typeof navigation,
-  ) =>
+  const renderNavigation = (items: typeof navigation) =>
     items.map(({ label, icon: Icon }) => {
       const active = activePage === label;
 
@@ -186,6 +187,7 @@ function Sidebar({
                 : 'text-[#929cb0] transition group-hover:text-[#5046e5]'
             }
           />
+
           <span>{label}</span>
 
           {label === 'Notifications' && (
@@ -248,6 +250,7 @@ function Sidebar({
               <p className="truncate text-[12px] font-bold text-[#202a40]">
                 Alex Candidate
               </p>
+
               <p className="mt-0.5 text-[11px] text-[#78839a]">
                 Candidate account
               </p>
@@ -291,6 +294,9 @@ function SectionTitle({
 }
 
 function CandidateDashboard() {
+  const navigate = useNavigate();
+  const logoutUser = useAuthStore((state) => state.logout);
+
   const [activePage, setActivePage] = useState('Dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -319,6 +325,20 @@ function CandidateDashboard() {
       );
     } else {
       setNotice('');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+
+      logoutUser();
+
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Logout failed:', error);
+
+      setNotice('Logout failed. Please try again.');
     }
   };
 
@@ -374,6 +394,7 @@ function CandidateDashboard() {
               size={18}
               className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8792a9]"
             />
+
             <input
               type="search"
               value={search}
@@ -404,6 +425,7 @@ function CandidateDashboard() {
                   <p className="text-[13px] font-bold text-[#20283a]">
                     Notifications
                   </p>
+
                   <p className="mt-2 text-[12px] leading-5 text-[#78839a]">
                     Your application and interview updates will appear here.
                   </p>
@@ -443,6 +465,7 @@ function CandidateDashboard() {
                     <UserRound size={16} />
                     My Profile
                   </button>
+
                   <button
                     type="button"
                     onClick={() => navigateTo('Settings')}
@@ -451,12 +474,12 @@ function CandidateDashboard() {
                     <Settings size={16} />
                     Settings
                   </button>
+
                   <div className="my-1 border-t border-[#eceef4]" />
+
                   <button
                     type="button"
-                    onClick={() =>
-                      setNotice('Logout will be connected to the authentication API.')
-                    }
+                    onClick={handleLogout}
                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-[12px] text-[#c44759] hover:bg-red-50"
                   >
                     <LogOut size={16} />
@@ -476,6 +499,7 @@ function CandidateDashboard() {
               className="mb-5 flex items-start justify-between gap-3 rounded-lg border border-[#dcd9ff] bg-gradient-to-r from-[#f2f0ff] to-white px-4 py-3 text-[12px] text-[#5046e5]"
             >
               <span>{notice}</span>
+
               <button
                 type="button"
                 onClick={() => setNotice('')}
@@ -491,10 +515,12 @@ function CandidateDashboard() {
               <p className="text-[14px] font-semibold text-[#26344c]">
                 {activePage}
               </p>
+
               <p className="mt-1 text-[12px] leading-5 text-[#78839a]">
                 This navigation item is ready for routing. Its page and API
                 integration can be added next.
               </p>
+
               <button
                 type="button"
                 onClick={() => navigateTo('Dashboard')}
@@ -509,13 +535,16 @@ function CandidateDashboard() {
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_310px]">
             <section className="relative flex min-h-[155px] flex-col justify-center overflow-hidden rounded-xl border border-[#dcd9f4] bg-gradient-to-br from-white via-[#fbfaff] to-[#f0eeff] px-6 py-7 shadow-[0_2px_5px_rgba(23,32,51,0.025)] sm:px-9">
               <div className="absolute -right-12 -top-20 h-56 w-56 rounded-full bg-[#5046e5]/[0.05] blur-3xl" />
+
               <div className="relative">
                 <p className="mb-2 text-[10px] font-bold tracking-[1.7px] text-[#5046e5]">
                   YOUR CAREER JOURNEY
                 </p>
+
                 <h2 className="text-[25px] font-bold tracking-[-0.9px] text-[#20283a] sm:text-[29px]">
                   Good morning, Alex.
                 </h2>
+
                 <p className="mt-2 text-[13px] leading-6 text-[#69748d] sm:text-[15px]">
                   Here's what's happening with your job search today.
                 </p>
@@ -528,6 +557,7 @@ function CandidateDashboard() {
                   <h2 className="text-[14px] font-bold text-[#263047]">
                     Profile Completion
                   </h2>
+
                   <p className="mt-1 text-[12px] text-[#79839a]">
                     Stand out to recruiters
                   </p>
@@ -547,6 +577,7 @@ function CandidateDashboard() {
                       stroke="#eeedff"
                       strokeWidth="6"
                     />
+
                     <circle
                       cx="30"
                       cy="30"
@@ -555,9 +586,12 @@ function CandidateDashboard() {
                       stroke="#5549ed"
                       strokeWidth="6"
                       strokeLinecap="round"
-                      strokeDasharray={`${2 * Math.PI * 24 * 0.82} ${2 * Math.PI * 24}`}
+                      strokeDasharray={`${2 * Math.PI * 24 * 0.82} ${
+                        2 * Math.PI * 24
+                      }`}
                     />
                   </svg>
+
                   <span className="text-[13px] font-bold text-[#263047]">
                     82%
                   </span>
@@ -604,6 +638,7 @@ function CandidateDashboard() {
                     >
                       <Icon size={17} />
                     </div>
+
                     <span className={`text-[12px] font-semibold ${color}`}>
                       {label}
                     </span>
@@ -613,6 +648,7 @@ function CandidateDashboard() {
                     <p className="text-[32px] font-bold leading-none tracking-[-1px] text-[#20283a]">
                       {value}
                     </p>
+
                     <ChevronRight
                       size={17}
                       className="text-[#a0a8b9] transition group-hover:translate-x-0.5 group-hover:text-[#5046e5]"
@@ -659,6 +695,7 @@ function CandidateDashboard() {
                           <h3 className="text-[13px] font-bold leading-5 text-[#263047]">
                             {job.title}
                           </h3>
+
                           <p className="mt-1 text-[12px] text-[#78839a]">
                             {job.company}
                           </p>
@@ -694,6 +731,7 @@ function CandidateDashboard() {
                           <MapPin size={12} />
                           {job.location}
                         </span>
+
                         <span className="rounded-md bg-[#eff1f5] px-2.5 py-1.5 text-[10px] font-medium text-[#566178]">
                           {job.workType}
                         </span>
@@ -729,15 +767,18 @@ function CandidateDashboard() {
 
                 <div className="overflow-hidden rounded-xl border border-[#dedfec] bg-white shadow-[0_2px_5px_rgba(23,32,51,0.025)]">
                   {recentApplications.map(
-                    ({
-                      id,
-                      title,
-                      company,
-                      applied,
-                      status,
-                      icon: Icon,
-                      statusStyle,
-                    }, index) => (
+                    (
+                      {
+                        id,
+                        title,
+                        company,
+                        applied,
+                        status,
+                        icon: Icon,
+                        statusStyle,
+                      },
+                      index,
+                    ) => (
                       <button
                         key={id}
                         type="button"
@@ -754,6 +795,7 @@ function CandidateDashboard() {
                           <p className="truncate text-[12px] font-bold text-[#263047]">
                             {title}
                           </p>
+
                           <p className="mt-1 truncate text-[11px] text-[#78839a]">
                             {company} · {applied}
                           </p>
@@ -765,6 +807,7 @@ function CandidateDashboard() {
                           {status === 'Under Review' && (
                             <span className="h-1.5 w-1.5 rounded-full bg-[#5549ed]" />
                           )}
+
                           {status}
                         </span>
 
@@ -846,6 +889,7 @@ function CandidateDashboard() {
                   <div className="grid h-8 w-8 place-items-center rounded-lg bg-[#e7e3ff] text-[#5046e5]">
                     <Sparkles size={17} />
                   </div>
+
                   <h3 className="text-[13px] font-bold text-[#30304f]">
                     Stand out to recruiters
                   </h3>

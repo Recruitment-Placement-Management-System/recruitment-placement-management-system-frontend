@@ -1,7 +1,11 @@
-
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Eye, EyeOff, LockKeyhole, ArrowRight } from 'lucide-react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+
+import { login } from '../../../api/auth.api';
+import useAuthStore from '../../../store/auth.store';
 
 const lifecycle = [
   { title: 'Candidate Discovery', detail: 'Sourcing and talent pooling' },
@@ -36,24 +40,66 @@ function BrandLogo() {
 }
 
 function App() {
+  const loginUser = useAuthStore((state)=>state.login);
+  const navigate = useNavigate()
+
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // Connect the login API here in the integration step.
-    setMessage('The login form is ready for API integration.');
+    setMessage('');
+    setIsLoggingIn(true);
+
+    try {
+      const response = await login({
+        email,
+        password,
+      });
+
+      console.log('Login response:', response);
+
+      loginUser(response.accessToken,response.user)
+
+      setMessage(response.message);
+
+      const role = response.user.roles[0];
+
+      if (role === 'candidate') {
+  navigate('/candidate/dashboard');
+} else if (role === 'recruiter') {
+  navigate('/recruiter/dashboard');
+} else if (role === 'admin') {
+  navigate('/admin/dashboard');
+}
+
+      // Zustand authentication state will be added here next.
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const message =
+          error.response?.data?.message ||
+          'Login failed. Please try again.';
+
+        setMessage(message);
+      } else {
+        setMessage('Login failed. Please try again.');
+      }
+    } finally {
+      setIsLoggingIn(false);
+    }
   };
 
   const handleForgotPassword = () => {
-    // Navigate to the forgot-password page when routing is configured.
+    // Navigation will be connected when the forgot-password flow is implemented.
     setMessage('The password reset flow will be connected next.');
   };
 
   const handleCreateAccount = () => {
-    // Navigate to the registration page when routing is configured.
+    // Navigation is already available through routing.
     setMessage('The registration page will be connected through routing.');
   };
 
@@ -94,7 +140,10 @@ function App() {
                 <span className="absolute bottom-5 left-[11px] top-3 w-px bg-[#34415d]" />
 
                 {lifecycle.map((item) => (
-                  <div key={item.title} className="relative flex items-start">
+                  <div
+                    key={item.title}
+                    className="relative flex items-start"
+                  >
                     <span
                       className={`absolute -left-10 top-0.5 grid h-[23px] w-[23px] place-items-center rounded-full border ${
                         item.active
@@ -117,6 +166,7 @@ function App() {
                       >
                         {item.title}
                       </p>
+
                       <p
                         className={`mt-1 text-[12px] ${
                           item.active ? 'text-[#a7a0ff]' : 'text-[#91a0ba]'
@@ -194,6 +244,7 @@ function App() {
               <label className="block">
                 <span className="mb-2 flex items-center justify-between gap-3 text-[12px] font-semibold text-[#26344c]">
                   <span>Password</span>
+
                   <button
                     type="button"
                     onClick={handleForgotPassword}
@@ -215,6 +266,11 @@ function App() {
                     type={showPassword ? 'text' : 'password'}
                     name="password"
                     autoComplete="current-password"
+                    value={password}
+                    onChange={(event) => {
+                      setPassword(event.target.value);
+                      setMessage('');
+                    }}
                     placeholder="Enter your password"
                     className="h-[47px] w-full rounded-lg border border-[#dce2ec] bg-white px-4 text-[14px] text-[#25334a] shadow-[0_1px_2px_rgba(16,24,40,0.03)] outline-none transition placeholder:text-[#9cafc8] hover:border-[#c7cfe0] focus:border-[#5046e5] focus:ring-4 focus:ring-[#5046e5]/[0.08] sm:pl-10 sm:pr-11"
                   />
@@ -222,24 +278,34 @@ function App() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={
+                      showPassword ? 'Hide password' : 'Show password'
+                    }
                     aria-pressed={showPassword}
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#91a3bd] transition hover:text-[#5046e5]"
                   >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
                   </button>
                 </span>
               </label>
 
               <button
                 type="submit"
-                className="group flex h-[47px] w-full items-center justify-center gap-2 rounded-lg bg-[#5046e5] text-[14px] font-semibold text-white shadow-[0_4px_10px_rgba(80,70,229,0.18)] transition hover:bg-[#443bd0] focus:outline-none focus:ring-4 focus:ring-[#5046e5]/20 active:scale-[0.99]"
+                disabled={isLoggingIn}
+                className="group flex h-[47px] w-full items-center justify-center gap-2 rounded-lg bg-[#5046e5] text-[14px] font-semibold text-white shadow-[0_4px_10px_rgba(80,70,229,0.18)] transition hover:bg-[#443bd0] focus:outline-none focus:ring-4 focus:ring-[#5046e5]/20 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
               >
-                Sign in
-                <ArrowRight
-                  size={16}
-                  className="transition-transform group-hover:translate-x-0.5"
-                />
+                {isLoggingIn ? 'Signing in...' : 'Sign in'}
+
+                {!isLoggingIn && (
+                  <ArrowRight
+                    size={16}
+                    className="transition-transform group-hover:translate-x-0.5"
+                  />
+                )}
               </button>
             </form>
 

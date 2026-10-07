@@ -9,6 +9,8 @@ import RecruiterDashboard from './features/auth/pages/RecruiterDashboard';
 import RecruiterRegistration from './features/auth/pages/RecruiterRegistration';
 import ResetPassword from './features/auth/pages/ResetPassword';
 
+import ProtectedRoute from "./features/auth/components/ProctectedRoute";
+
 function App(){
   return(
     <Routes>
@@ -40,16 +42,20 @@ function App(){
       />
 
       {/* Candidate */}
+      <Route element={<ProtectedRoute allowedRoles={['candidate']}/>}>
       <Route
         path="/candidate/dashboard"
         element={<CandidateDashboard />}
       />
+      </Route>
 
       {/* Recruiter */}
-      <Route
-        path="/recruiter/dashboard"
-        element={<RecruiterDashboard />}
-      />
+      <Route element={<ProtectedRoute allowedRoles={['recruiter']} />}>
+  <Route
+    path="/recruiter/dashboard"
+    element={<RecruiterDashboard />}
+  />
+</Route>
 
       {/* Default */}
       <Route
