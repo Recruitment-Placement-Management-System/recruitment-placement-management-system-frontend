@@ -1,20 +1,69 @@
+import { Navigate,Route,Routes } from "react-router-dom";
 
-function App() {
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-100 p-6">
-      <section className="rounded-xl bg-white p-8 shadow-lg">
-        <h1 className="text-3xl font-bold text-blue-700">
-          R&PMS Frontend
-        </h1>
-        <p className="mt-3 text-gray-600">
-          React, TypeScript and Tailwind CSS are ready.
-        </p>
-        <button className="mt-6 rounded-lg bg-blue-600 px-5 py-2 text-white hover:bg-blue-700">
-          Test Button
-        </button>
-      </section>
-    </main>
+import CandidateDashboard from "./features/auth/pages/CandidateDashboard";
+import CandidateRegistration from './features/auth/pages/CandidateRegistration';
+import EmailVerification from './features/auth/pages/EmailVerification';
+import ForgotPassword from './features/auth/pages/ForgotPassword';
+import Login from './features/auth/pages/Login';
+import RecruiterDashboard from './features/auth/pages/RecruiterDashboard';
+import RecruiterRegistration from './features/auth/pages/RecruiterRegistration';
+import ResetPassword from './features/auth/pages/ResetPassword';
+
+function App(){
+  return(
+    <Routes>
+
+      {/*authentication*/}
+
+      <Route path="/login" element={<Login/>} />
+
+      <Route path="/candidate/register" element={<CandidateRegistration/>} />
+
+      <Route
+        path="/recruiter/register"
+        element={<RecruiterRegistration />}
+      />
+
+      <Route
+        path="/verify-email"
+        element={<EmailVerification />}
+      />
+
+      <Route
+        path="/forgot-password"
+        element={<ForgotPassword />}
+      />
+
+      <Route
+        path="/reset-password"
+        element={<ResetPassword />}
+      />
+
+      {/* Candidate */}
+      <Route
+        path="/candidate/dashboard"
+        element={<CandidateDashboard />}
+      />
+
+      {/* Recruiter */}
+      <Route
+        path="/recruiter/dashboard"
+        element={<RecruiterDashboard />}
+      />
+
+      {/* Default */}
+      <Route
+        path="/"
+        element={<Navigate to="/login" replace />}
+      />
+
+      {/* Unknown route */}
+      <Route
+        path="*"
+        element={<Navigate to="/login" replace />}
+      />
+    </Routes>
   )
 }
 
-export default App
+export default App;
