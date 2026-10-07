@@ -100,6 +100,7 @@ function App() {
 
   const handleCreateAccount = () => {
     // Navigation is already available through routing.
+    navigate('/candidate/register')
     setMessage('The registration page will be connected through routing.');
   };
 

@@ -15,6 +15,16 @@ export const verifyEmail = async(
     return response.data;
 }
 
+export const resendVerificationEmail = async (
+  email: string
+) => {
+  const response = await api.post('/auth/resend-verification', {
+    email,
+  });
+
+  return response.data;
+};
+
 export const login = async(
     data:loginData
 ):Promise<LoginResponse>=>{
@@ -26,3 +36,4 @@ export const logout = async ()=>{
     const response = await api.post('/auth/logout');
     return response.data;
 }
+

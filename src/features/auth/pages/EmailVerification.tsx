@@ -1,35 +1,45 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
-import { useNavigate,useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+
 import type {
   ChangeEvent,
   ClipboardEvent,
   KeyboardEvent,
 } from 'react';
+
 import { Check, MailCheck, Shield } from 'lucide-react';
 
-import { verifyEmail } from '../../../api/auth.api';
+import {
+  verifyEmail,
+  resendVerificationEmail,
+} from '../../../api/auth.api';
 
 const CODE_LENGTH = 6;
-const RESEND_DELAY = 45;
+const RESEND_DELAY = 20;
 
 function EmailVerificationPage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const [code, setCode] = useState<string[]>(
     Array(CODE_LENGTH).fill(''),
   );
+
   const [secondsRemaining, setSecondsRemaining] =
     useState(RESEND_DELAY);
+
   const [emailValue, setEmailValue] = useState(
-    searchParams.get('email')||'',
+    searchParams.get('email') || '',
   );
+
   const [editingEmail, setEditingEmail] = useState(false);
   const [verified, setVerified] = useState(false);
 
-  const [error,setError] = useState('')
-  const [isVerifying,setIsVerifying] = useState(false)
+  const [error, setError] = useState('');
+  const [resendMessage, setResendMessage] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -56,6 +66,8 @@ function EmailVerificationPage() {
 
     setCode(nextCode);
     setVerified(false);
+    setError('');
+    setResendMessage('');
 
     if (value && index < CODE_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
@@ -106,6 +118,8 @@ function EmailVerificationPage() {
 
     setCode(nextCode);
     setVerified(false);
+    setError('');
+    setResendMessage('');
 
     const nextIndex = Math.min(
       pastedCode.length,
@@ -115,56 +129,92 @@ function EmailVerificationPage() {
     inputRefs.current[nextIndex]?.focus();
   };
 
-  const handleResend = () => {
-    if (secondsRemaining > 0) return;
-
-    setCode(Array(CODE_LENGTH).fill(''));
-    setVerified(false);
-    setSecondsRemaining(RESEND_DELAY);
-    inputRefs.current[0]?.focus();
-
-    // Connect this action to the backend resend-verification API.
-  };
-
-  const handleVerify = async ()=>{
-    const verificationCode = code.join('');
-
-    if(verificationCode.length !== CODE_LENGTH){
+  const handleResend = async () => {
+    if (
+      secondsRemaining > 0 ||
+      isResending ||
+      !emailValue
+    ) {
       return;
     }
 
-    if(!emailValue){
+    setError('');
+    setResendMessage('');
+    setIsResending(true);
+
+    try {
+      await resendVerificationEmail(emailValue);
+
+      setCode(Array(CODE_LENGTH).fill(''));
+      setVerified(false);
+      setSecondsRemaining(RESEND_DELAY);
+
+      setResendMessage(
+        'A new verification code has been sent to your email.',
+      );
+
+      inputRefs.current[0]?.focus();
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const message =
+          error.response?.data?.message ||
+          'Unable to resend verification code. Please try again.';
+
+        setError(message);
+      } else {
+        setError(
+          'Unable to resend verification code. Please try again.',
+        );
+      }
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  const handleVerify = async () => {
+    const verificationCode = code.join('');
+
+    if (verificationCode.length !== CODE_LENGTH) {
+      return;
+    }
+
+    if (!emailValue) {
       setError('Please enter a valid email address');
       return;
     }
 
     setError('');
+    setResendMessage('');
     setVerified(false);
-    setIsVerifying(true)
+    setIsVerifying(true);
 
-    try{
-      await verifyEmail({email:emailValue,verificationCode})
+    try {
+      await verifyEmail({
+        email: emailValue,
+        verificationCode,
+      });
 
-      setVerified(true)
+      setVerified(true);
 
       setTimeout(() => {
-      navigate('/login');
-    }, 1200);
+        navigate('/login');
+      }, 1200);
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const message =
+          error.response?.data?.message ||
+          'Email verification failed. Please try again.';
 
-    }catch(error:unknown){
-       if (axios.isAxiosError(error)) {
-      const message =
-        error.response?.data?.message ||
-        'Email verification failed. Please try again.';
-
-      setError(message);
-    } else {
-      setError('Email verification failed. Please try again.');
+        setError(message);
+      } else {
+        setError(
+          'Email verification failed. Please try again.',
+        );
+      }
+    } finally {
+      setIsVerifying(false);
     }
-    }finally{
-      setIsVerifying(false)
-    }
-  }
+  };
 
   const formattedTime = `00:${String(
     secondsRemaining,
@@ -173,6 +223,7 @@ function EmailVerificationPage() {
   return (
     <main className="min-h-screen bg-white text-[#171923]">
       <div className="grid min-h-screen lg:grid-cols-[46.1%_53.9%]">
+
         {/* Left branding panel */}
         <aside className="relative hidden min-h-screen overflow-hidden bg-[#0d1528] px-8 py-10 text-white lg:flex lg:flex-col">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,rgba(77,68,225,0.16),transparent_42%),linear-gradient(140deg,#10172a_10%,#0e1628_58%,#111a38)]" />
@@ -235,6 +286,7 @@ function EmailVerificationPage() {
         {/* Verification form */}
         <section className="flex min-h-screen items-center justify-center px-5 py-10 sm:px-10 lg:px-12 xl:px-16">
           <div className="w-full max-w-[460px]">
+
             {/* Mobile branding */}
             <div className="mb-10 flex items-center justify-center gap-3 lg:hidden">
               <div className="grid h-8 w-8 grid-cols-2 gap-1 rounded-[7px] bg-[#5147e8] p-[6px]">
@@ -248,6 +300,7 @@ function EmailVerificationPage() {
                 <p className="text-xl font-bold tracking-[-0.5px] text-[#171923]">
                   R&PMS
                 </p>
+
                 <p className="text-[9px] font-medium tracking-[0.7px] text-[#77798a]">
                   ENTERPRISE R&PMS
                 </p>
@@ -326,25 +379,33 @@ function EmailVerificationPage() {
                   pattern="[0-9]*"
                   maxLength={1}
                   aria-label={`Verification digit ${index + 1}`}
-                  autoComplete={index === 0 ? 'one-time-code' : 'off'}
+                  autoComplete={
+                    index === 0 ? 'one-time-code' : 'off'
+                  }
                 />
               ))}
             </div>
 
             {error && (
-  <p className="mt-4 text-center text-sm font-medium text-red-600">
-    {error}
-  </p>
-)}
+              <p className="mt-4 text-center text-sm font-medium text-red-600">
+                {error}
+              </p>
+            )}
+
+            {resendMessage && (
+              <p className="mt-4 text-center text-sm font-medium text-[#2e8655]">
+                {resendMessage}
+              </p>
+            )}
 
             <button
-  type="button"
-  onClick={handleVerify}
-  disabled={!code.every(Boolean) || isVerifying}
-  className="mt-7 h-12 w-full rounded-lg bg-[#5046e5] text-[15px] font-semibold text-white shadow-[0_3px_8px_rgba(80,70,229,0.2)] transition hover:bg-[#443bd0] disabled:cursor-not-allowed disabled:opacity-50"
->
-  {isVerifying ? 'Verifying...' : 'Verify email'}
-</button>
+              type="button"
+              onClick={handleVerify}
+              disabled={!code.every(Boolean) || isVerifying}
+              className="mt-7 h-12 w-full rounded-lg bg-[#5046e5] text-[15px] font-semibold text-white shadow-[0_3px_8px_rgba(80,70,229,0.2)] transition hover:bg-[#443bd0] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isVerifying ? 'Verifying...' : 'Verify email'}
+            </button>
 
             {verified && (
               <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm font-semibold text-[#2e8655]">
@@ -357,12 +418,18 @@ function EmailVerificationPage() {
               <button
                 type="button"
                 onClick={handleResend}
-                disabled={secondsRemaining > 0}
+                disabled={
+                  secondsRemaining > 0 ||
+                  isResending ||
+                  !emailValue
+                }
                 className="font-medium text-[#4438d6] transition hover:underline disabled:cursor-not-allowed disabled:text-[#9292a4]"
               >
-                {secondsRemaining > 0
-                  ? `Resend code in ${formattedTime}`
-                  : 'Resend verification code'}
+                {isResending
+                  ? 'Sending...'
+                  : secondsRemaining > 0
+                    ? `Resend code in ${formattedTime}`
+                    : 'Resend verification code'}
               </button>
 
               <button
