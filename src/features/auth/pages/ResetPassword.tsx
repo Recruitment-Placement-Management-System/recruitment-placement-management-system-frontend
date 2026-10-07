@@ -1,6 +1,8 @@
-
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import axios from 'axios';
+
 import {
   ArrowLeft,
   Eye,
@@ -13,6 +15,8 @@ import {
   LoaderCircle,
   ShieldCheck,
 } from 'lucide-react';
+
+import { resetPassword } from '../../../api/auth.api';
 
 const features = [
   {
@@ -50,6 +54,7 @@ function BrandLogo() {
         <p className="text-[23px] font-bold leading-none tracking-[-0.8px] text-white">
           R&PMS
         </p>
+
         <p className="mt-1.5 text-[9px] font-semibold tracking-[1.5px] text-[#a9b4cb]">
           ENTERPRISE R&PMS
         </p>
@@ -114,10 +119,17 @@ function PasswordField({
 }
 
 function ResetPasswordPage() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const token = searchParams.get('token');
+
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -125,10 +137,18 @@ function ResetPasswordPage() {
   const passwordsMatch =
     confirmPassword.length === 0 || password === confirmPassword;
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
     setMessage('');
     setIsSuccess(false);
+
+    if (!token) {
+      setMessage(
+        'Invalid or missing reset token. Please request a new password reset link.',
+      );
+      return;
+    }
 
     if (password.length < 8) {
       setMessage('Your password must contain at least 8 characters.');
@@ -142,19 +162,41 @@ function ResetPasswordPage() {
 
     setIsLoading(true);
 
-    // TODO: Read the reset token from the URL and call the backend API.
-    // Do not mark the password as reset until the API confirms success.
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const response = await resetPassword({
+        token,
+        newPassword: password,
+      });
+
+      setIsSuccess(true);
       setMessage(
-        'The form is ready for backend integration. Your password has not been changed.',
+        response?.message || 'Password has been reset successfully.',
       );
-    }, 500);
+
+      setPassword('');
+      setConfirmPassword('');
+
+      setTimeout(() => {
+        navigate('/login', { replace: true });
+      }, 1200);
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        setMessage(
+          error.response?.data?.message ||
+            'Unable to reset your password. Please request a new reset link.',
+        );
+      } else {
+        setMessage(
+          'Unable to reset your password. Please try again.',
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleBackToLogin = () => {
-    // TODO: Replace with React Router navigation to the login page.
-    window.history.back();
+    navigate('/login');
   };
 
   return (
@@ -185,58 +227,65 @@ function ResetPasswordPage() {
             </p>
 
             <div className="mt-10 space-y-0">
-              {features.map(({ title, detail, Icon, active }, index) => (
-                <div key={title}>
-                  <div
-                    className={`relative flex items-center gap-5 overflow-hidden rounded-xl border px-5 py-5 transition ${
-                      active
-                        ? 'border-[#6660e9]/50 bg-gradient-to-r from-[#292b5a]/80 to-[#1b253c]/90 shadow-[0_8px_30px_rgba(0,0,0,0.12)]'
-                        : 'border-white/[0.09] bg-white/[0.035]'
-                    }`}
-                  >
-                    {active && (
-                      <span className="absolute bottom-0 left-0 top-0 w-[3px] bg-gradient-to-b from-[#b4aaff] to-[#5046e5]" />
-                    )}
-
+              {features.map(
+                ({ title, detail, Icon, active }, index) => (
+                  <div key={title}>
                     <div
-                      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${
+                      className={`relative flex items-center gap-5 overflow-hidden rounded-xl border px-5 py-5 transition ${
                         active
-                          ? 'bg-gradient-to-br from-[#6258ff] to-[#4338ca] text-white shadow-lg shadow-[#5046e5]/20'
-                          : 'bg-[#282e5e] text-[#d6d3ff]'
+                          ? 'border-[#6660e9]/50 bg-gradient-to-r from-[#292b5a]/80 to-[#1b253c]/90 shadow-[0_8px_30px_rgba(0,0,0,0.12)]'
+                          : 'border-white/[0.09] bg-white/[0.035]'
                       }`}
                     >
-                      <Icon size={23} strokeWidth={1.9} />
-                    </div>
+                      {active && (
+                        <span className="absolute bottom-0 left-0 top-0 w-[3px] bg-gradient-to-b from-[#b4aaff] to-[#5046e5]" />
+                      )}
 
-                    <div>
-                      <p className="text-[15px] font-semibold text-[#f1f4fc]">
-                        {title}
-                      </p>
-                      <p
-                        className={`mt-1 text-[13px] ${
-                          active ? 'text-[#b6b0ff]' : 'text-[#a2aec4]'
+                      <div
+                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${
+                          active
+                            ? 'bg-gradient-to-br from-[#6258ff] to-[#4338ca] text-white shadow-lg shadow-[#5046e5]/20'
+                            : 'bg-[#282e5e] text-[#d6d3ff]'
                         }`}
                       >
-                        {detail}
-                      </p>
-                    </div>
-                  </div>
+                        <Icon size={23} strokeWidth={1.9} />
+                      </div>
 
-                  {index < features.length - 1 && (
-                    <div className="ml-10 h-5 w-px bg-gradient-to-b from-[#59617e] to-[#343c58]" />
-                  )}
-                </div>
-              ))}
+                      <div>
+                        <p className="text-[15px] font-semibold text-[#f1f4fc]">
+                          {title}
+                        </p>
+
+                        <p
+                          className={`mt-1 text-[13px] ${
+                            active
+                              ? 'text-[#b6b0ff]'
+                              : 'text-[#a2aec4]'
+                          }`}
+                        >
+                          {detail}
+                        </p>
+                      </div>
+                    </div>
+
+                    {index < features.length - 1 && (
+                      <div className="ml-10 h-5 w-px bg-gradient-to-b from-[#59617e] to-[#343c58]" />
+                    )}
+                  </div>
+                ),
+              )}
             </div>
 
             <div className="mt-9 flex items-center gap-3 rounded-lg border border-white/[0.07] bg-white/[0.025] px-4 py-3.5">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#282e5e] text-[#a9a4ff]">
                 <ShieldCheck size={19} />
               </div>
+
               <div>
                 <p className="text-[12px] font-semibold text-[#e6eaf5]">
                   Account security matters
                 </p>
+
                 <p className="mt-1 text-[11px] text-[#9caac2]">
                   Use a unique password that you do not share.
                 </p>
@@ -284,7 +333,9 @@ function ResetPasswordPage() {
                   setIsSuccess(false);
                 }}
                 showPassword={showPassword}
-                onToggle={() => setShowPassword((current) => !current)}
+                onToggle={() =>
+                  setShowPassword((current) => !current)
+                }
                 autoComplete="new-password"
               />
 
@@ -313,6 +364,7 @@ function ResetPasswordPage() {
                 <p className="text-[12px] font-semibold text-[#596174]">
                   Password requirements
                 </p>
+
                 <ul className="mt-2 space-y-2 text-[12px] text-[#717b90]">
                   <li className="flex items-center gap-2">
                     <CheckCircle2
@@ -325,11 +377,13 @@ function ResetPasswordPage() {
                     />
                     At least 8 characters
                   </li>
+
                   <li className="flex items-center gap-2">
                     <CheckCircle2
                       size={15}
                       className={
-                        /[A-Za-z]/.test(password) && /\d/.test(password)
+                        /[A-Za-z]/.test(password) &&
+                        /\d/.test(password)
                           ? 'text-emerald-600'
                           : 'text-[#a5adbd]'
                       }
@@ -355,12 +409,20 @@ function ResetPasswordPage() {
 
               <button
                 type="submit"
-                disabled={isLoading || !passwordsMatch}
+                disabled={
+                  isLoading ||
+                  !passwordsMatch ||
+                  !password ||
+                  !confirmPassword
+                }
                 className="flex h-[49px] w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#5549ed] to-[#493de0] text-[14px] font-semibold text-white shadow-[0_4px_12px_rgba(80,70,229,0.2)] transition hover:from-[#4b40dc] hover:to-[#3f34cd] focus:outline-none focus:ring-4 focus:ring-[#5046e5]/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoading ? (
                   <>
-                    <LoaderCircle size={17} className="animate-spin" />
+                    <LoaderCircle
+                      size={17}
+                      className="animate-spin"
+                    />
                     Resetting password...
                   </>
                 ) : (

@@ -95,6 +95,7 @@ function App() {
 
   const handleForgotPassword = () => {
     // Navigation will be connected when the forgot-password flow is implemented.
+    navigate('/forgot-password')
     setMessage('The password reset flow will be connected next.');
   };
 

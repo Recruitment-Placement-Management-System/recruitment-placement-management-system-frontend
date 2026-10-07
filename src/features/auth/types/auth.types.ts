@@ -26,3 +26,8 @@ export interface LoginResponse{
     accessToken:string;
     user:LoginUser
 }
+
+export interface ResetPasswordData {
+    token:string;
+    newPassword:string;
+}
