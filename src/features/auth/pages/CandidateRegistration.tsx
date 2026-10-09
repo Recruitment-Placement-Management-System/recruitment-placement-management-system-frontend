@@ -226,26 +226,31 @@ function App() {
 
             {/* Account type selector */}
             <div className="mx-auto flex w-fit rounded-[9px] border border-[#dedee7] bg-[#f0f1f5] p-1 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-              {(['Candidate', 'Recruiter'] as AccountType[]).map(
-                (type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => {
-                      setAccountType(type);
-                      setError('');
-                      setSubmitted(false);
-                    }}
-                    className={`rounded-[6px] px-[17px] py-[7px] text-[14px] font-semibold transition-all ${
-                      accountType === type
-                        ? 'bg-[#5046e5] text-white shadow-[0_2px_4px_rgba(80,70,229,0.25)]'
-                        : 'text-[#525363] hover:text-[#282936]'
-                    }`}
-                  >
-                    {type}
-                  </button>
-                )
-              )}
+             {(['Candidate', 'Recruiter'] as AccountType[]).map(
+  (type) => (
+    <button
+      key={type}
+      type="button"
+      onClick={() => {
+        if (type === 'Recruiter') {
+          navigate('/recruiter/register');
+          return;
+        }
+
+        setAccountType('Candidate');
+        setError('');
+        setSubmitted(false);
+      }}
+      className={`rounded-[6px] px-[17px] py-[7px] text-[14px] font-semibold transition-all ${
+        accountType === type
+          ? 'bg-[#5046e5] text-white shadow-[0_2px_4px_rgba(80,70,229,0.25)]'
+          : 'text-[#525363] hover:text-[#282936]'
+      }`}
+    >
+      {type}
+    </button>
+  )
+)}
             </div>
 
             {/* Heading */}

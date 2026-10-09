@@ -31,3 +31,14 @@ export interface ResetPasswordData {
     token:string;
     newPassword:string;
 }
+
+export interface RegisterRecruiterData{
+    fullName:string;
+    phone:string;
+    email:string;
+    password:string;
+    designation:string;
+    companyName:string;
+    companyLocation:string;
+    companyWebsite:string;
+}

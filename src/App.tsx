@@ -9,6 +9,9 @@ import RecruiterDashboard from './features/auth/pages/RecruiterDashboard';
 import RecruiterRegistration from './features/auth/pages/RecruiterRegistration';
 import ResetPassword from './features/auth/pages/ResetPassword';
 
+import AdminLogin from "./features/admin/pages/AdminLogin";
+import AdminDashboard from "./features/admin/pages/AdminDashboard";
+
 import ProtectedRoute from "./features/auth/components/ProctectedRoute";
 
 import { useEffect } from "react";
@@ -46,6 +49,8 @@ function App(){
 
       <Route path="/login" element={<Login/>} />
 
+      <Route path="/admin/login" element={<AdminLogin />} />
+
       <Route path="/candidate/register" element={<CandidateRegistration/>} />
 
       <Route
@@ -81,6 +86,13 @@ function App(){
   <Route
     path="/recruiter/dashboard"
     element={<RecruiterDashboard />}
+  />
+</Route>
+
+<Route element={<ProtectedRoute allowedRoles={['admin']} redirectTo="/admin/login"/>}>
+  <Route
+    path="/admin/dashboard"
+    element={<AdminDashboard />}
   />
 </Route>
 

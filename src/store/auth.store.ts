@@ -36,6 +36,7 @@ const useAuthStore = create<AuthState>((set)=>({
   setAccessToken:(accessToken)=>{
     set({
         accessToken,
+        isAuthenticated:true,
     })
   },
 

@@ -1,5 +1,7 @@
 import api from "./axios";
-import type { RegisterCandidateData,VerifyEmailData,loginData,LoginResponse,ResetPasswordData } from "../features/auth/types/auth.types";
+import type { RegisterCandidateData,VerifyEmailData,
+    loginData,LoginResponse,ResetPasswordData,RegisterRecruiterData 
+} from "../features/auth/types/auth.types";
 
 export const registerCandidate = async(
     data:RegisterCandidateData
@@ -48,5 +50,13 @@ export const resetPassword = async(
     data:ResetPasswordData
 )=>{
     const response = await api.post('/auth/reset-password',data);
+    return response.data;
+}
+
+
+export const registerRecruiter = async (
+    data:RegisterRecruiterData
+)=>{
+    const response = await api.post('/auth/register/recruiter',data);
     return response.data;
 }

@@ -1,6 +1,14 @@
-
 import { useRef, useState } from 'react';
-import type { ChangeEvent, FormEvent, DragEvent } from 'react';
+
+import type {
+  ChangeEvent,
+  FormEvent,
+  DragEvent,
+} from 'react';
+
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+
 import {
   UserRound,
   BriefcaseBusiness,
@@ -17,6 +25,8 @@ import {
   LoaderCircle,
   CheckCircle2,
 } from 'lucide-react';
+
+import { registerRecruiter } from '../../../api/auth.api';
 
 const features = [
   {
@@ -65,6 +75,7 @@ function BrandLogo() {
         <p className="text-[23px] font-bold leading-none tracking-[-0.8px] text-white">
           R&PMS
         </p>
+
         <p className="mt-1.5 text-[9px] font-semibold tracking-[1.5px] text-[#a9b4cb]">
           ENTERPRISE R&PMS
         </p>
@@ -96,8 +107,11 @@ function FormField({
     <label className="block min-w-0">
       <span className="mb-2 block text-[12px] font-semibold text-[#26344c]">
         {label}
+
         {!required && (
-          <span className="ml-1 font-normal text-[#929db0]">(Optional)</span>
+          <span className="ml-1 font-normal text-[#929db0]">
+            (Optional)
+          </span>
         )}
       </span>
 
@@ -105,7 +119,9 @@ function FormField({
         type={type}
         name={name}
         value={value}
-        onChange={(event) => onChange(name, event.target.value)}
+        onChange={(event) =>
+          onChange(name, event.target.value)
+        }
         placeholder={placeholder}
         required={required}
         autoComplete={autoComplete}
@@ -145,10 +161,10 @@ function PasswordField({
           type={visible ? 'text' : 'password'}
           name={name}
           value={value}
-          onChange={(event) => onChange(name, event.target.value)}
-          autoComplete={
-            name === 'password' ? 'new-password' : 'new-password'
+          onChange={(event) =>
+            onChange(name, event.target.value)
           }
+          autoComplete="new-password"
           placeholder={placeholder}
           className="h-[44px] w-full rounded-lg border border-[#dce2ec] bg-white px-3.5 pr-11 text-[13px] text-[#25334a] outline-none transition placeholder:text-[#909bb0] hover:border-[#c7cfe0] focus:border-[#5046e5] focus:ring-4 focus:ring-[#5046e5]/[0.08]"
         />
@@ -156,17 +172,27 @@ function PasswordField({
         <button
           type="button"
           onClick={onToggle}
-          aria-label={visible ? `Hide ${label}` : `Show ${label}`}
+          aria-label={
+            visible ? `Hide ${label}` : `Show ${label}`
+          }
           className="absolute right-3 top-1/2 -translate-y-1/2 text-[#91a3bd] transition hover:text-[#5046e5]"
         >
-          {visible ? <EyeOff size={17} /> : <Eye size={17} />}
+          {visible ? (
+            <EyeOff size={17} />
+          ) : (
+            <Eye size={17} />
+          )}
         </button>
       </span>
     </label>
   );
 }
 
-function SectionHeading({ children }: { children: string }) {
+function SectionHeading({
+  children,
+}: {
+  children: string;
+}) {
   return (
     <div className="mb-4 border-b border-[#d7dbea] pb-2">
       <h3 className="text-[10px] font-bold tracking-[1px] text-[#626b80]">
@@ -177,9 +203,11 @@ function SectionHeading({ children }: { children: string }) {
 }
 
 function RecruiterRegistrationPage() {
-  const [accountType, setAccountType] = useState<'candidate' | 'recruiter'>(
-    'recruiter',
-  );
+  const navigate = useNavigate();
+
+  const [accountType, setAccountType] = useState<
+    'candidate' | 'recruiter'
+  >('recruiter');
 
   const [form, setForm] = useState<RecruiterFormData>({
     fullName: '',
@@ -194,13 +222,20 @@ function RecruiterRegistrationPage() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [companyDocument, setCompanyDocument] = useState<File | null>(null);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
+
+  const [companyDocument, setCompanyDocument] =
+    useState<File | null>(null);
+
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
   const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'error' | 'info'>('info');
+  const [messageType, setMessageType] = useState<
+    'error' | 'info'
+  >('info');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -208,8 +243,15 @@ function RecruiterRegistrationPage() {
     form.confirmPassword.length === 0 ||
     form.password === form.confirmPassword;
 
-  const updateField = (name: string, value: string) => {
-    setForm((current) => ({ ...current, [name]: value }));
+  const updateField = (
+    name: string,
+    value: string,
+  ) => {
+    setForm((current) => ({
+      ...current,
+      [name]: value,
+    }));
+
     setMessage('');
   };
 
@@ -223,23 +265,30 @@ function RecruiterRegistrationPage() {
     const maxSize = 5 * 1024 * 1024;
 
     if (!allowedTypes.includes(file.type)) {
-      setMessage('Please upload a PDF, JPG, or PNG document.');
+      setMessage(
+        'Please upload a PDF, JPG, or PNG document.',
+      );
       setMessageType('error');
       return false;
     }
 
     if (file.size > maxSize) {
-      setMessage('The document must be smaller than 5 MB.');
+      setMessage(
+        'The document must be smaller than 5 MB.',
+      );
       setMessageType('error');
       return false;
     }
 
     setCompanyDocument(file);
     setMessage('');
+
     return true;
   };
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
 
     if (file) {
@@ -250,7 +299,9 @@ function RecruiterRegistrationPage() {
     event.target.value = '';
   };
 
-  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+  const handleDrop = (
+    event: DragEvent<HTMLDivElement>,
+  ) => {
     event.preventDefault();
     setIsDragging(false);
 
@@ -261,12 +312,18 @@ function RecruiterRegistrationPage() {
     }
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
+
     setMessage('');
+    setMessageType('info');
 
     if (form.password.length < 8) {
-      setMessage('Your password must contain at least 8 characters.');
+      setMessage(
+        'Your password must contain at least 8 characters.',
+      );
       setMessageType('error');
       return;
     }
@@ -278,39 +335,65 @@ function RecruiterRegistrationPage() {
     }
 
     if (!termsAccepted) {
-      setMessage('Please accept the Terms of Service and Privacy Policy.');
-      setMessageType('error');
-      return;
-    }
-
-    if (!companyDocument) {
-      setMessage('Please upload a company verification document.');
+      setMessage(
+        'Please accept the Terms of Service and Privacy Policy.',
+      );
       setMessageType('error');
       return;
     }
 
     setIsLoading(true);
 
-    // TODO: Connect to the recruiter registration API.
-    // Send the registration fields and document using FormData
-    // if the backend supports multipart/form-data uploads.
-    setIsLoading(false);
-    setMessage(
-      'Form validation passed. Backend registration and document upload are not connected yet.',
-    );
-    setMessageType('info');
+    try {
+      const response = await registerRecruiter({
+        fullName: form.fullName,
+        phone: form.phone,
+        email: form.email,
+        password: form.password,
+        designation: form.jobTitle,
+        companyName: form.companyName,
+        companyLocation: form.companyLocation,
+        companyWebsite: form.companyWebsite,
+      });
+
+      console.log(
+        'Recruiter registration response:',
+        response,
+      );
+
+      navigate(
+        `/verify-email?email=${encodeURIComponent(
+          form.email,
+        )}`,
+      );
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        setMessage(
+          error.response?.data?.message ||
+            'Unable to create your recruiter account. Please try again.',
+        );
+      } else {
+        setMessage(
+          'Unable to create your recruiter account. Please try again.',
+        );
+      }
+
+      setMessageType('error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleAccountTypeChange = (type: 'candidate' | 'recruiter') => {
-    setAccountType(type);
-
-    // TODO: Navigate to the relevant registration page.
+  const handleAccountTypeChange = (
+    type: 'candidate' | 'recruiter',
+  ) => {
     if (type === 'candidate') {
-      setMessage('Candidate registration page navigation is not connected yet.');
-      setMessageType('info');
-    } else {
-      setMessage('');
+      navigate('/candidate/register');
+      return;
     }
+
+    setAccountType('recruiter');
+    setMessage('');
   };
 
   return (
@@ -336,39 +419,47 @@ function RecruiterRegistrationPage() {
             </h1>
 
             <p className="mt-4 max-w-[440px] text-[14px] leading-7 text-[#b9c4d8] xl:text-[15px]">
-              Streamline your hiring process, discover top-tier candidates, and
-              build your dream team with our enterprise recruitment platform.
+              Streamline your hiring process, discover
+              top-tier candidates, and build your dream
+              team with our enterprise recruitment
+              platform.
             </p>
 
             <div className="mt-10 space-y-0">
-              {features.map(({ title, detail, Icon }, index) => (
-                <div key={title}>
-                  <div className="flex items-center gap-4 rounded-xl border border-white/[0.09] bg-gradient-to-r from-white/[0.06] to-white/[0.025] px-4 py-4">
-                    <div
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-                        index === 1
-                          ? 'bg-gradient-to-br from-[#6258ff] to-[#4338ca] text-white shadow-lg shadow-[#5046e5]/20'
-                          : 'bg-[#282e5e] text-[#d6d3ff]'
-                      }`}
-                    >
-                      <Icon size={21} strokeWidth={1.9} />
+              {features.map(
+                ({ title, detail, Icon }, index) => (
+                  <div key={title}>
+                    <div className="flex items-center gap-4 rounded-xl border border-white/[0.09] bg-gradient-to-r from-white/[0.06] to-white/[0.025] px-4 py-4">
+                      <div
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
+                          index === 1
+                            ? 'bg-gradient-to-br from-[#6258ff] to-[#4338ca] text-white shadow-lg shadow-[#5046e5]/20'
+                            : 'bg-[#282e5e] text-[#d6d3ff]'
+                        }`}
+                      >
+                        <Icon
+                          size={21}
+                          strokeWidth={1.9}
+                        />
+                      </div>
+
+                      <div>
+                        <p className="text-[14px] font-semibold text-[#f1f4fc]">
+                          {title}
+                        </p>
+
+                        <p className="mt-1 text-[12px] text-[#a2aec4]">
+                          {detail}
+                        </p>
+                      </div>
                     </div>
 
-                    <div>
-                      <p className="text-[14px] font-semibold text-[#f1f4fc]">
-                        {title}
-                      </p>
-                      <p className="mt-1 text-[12px] text-[#a2aec4]">
-                        {detail}
-                      </p>
-                    </div>
+                    {index < features.length - 1 && (
+                      <div className="ml-9 h-4 w-px bg-gradient-to-b from-[#59617e] to-[#343c58]" />
+                    )}
                   </div>
-
-                  {index < features.length - 1 && (
-                    <div className="ml-9 h-4 w-px bg-gradient-to-b from-[#59617e] to-[#343c58]" />
-                  )}
-                </div>
-              ))}
+                ),
+              )}
             </div>
 
             <div className="mt-7 flex items-start gap-3 rounded-xl border border-[#625ce0]/20 bg-gradient-to-r from-[#292b5a]/50 to-[#1b253c]/50 p-4">
@@ -376,13 +467,15 @@ function RecruiterRegistrationPage() {
                 size={20}
                 className="mt-0.5 shrink-0 text-[#aaa4ff]"
               />
+
               <div>
                 <p className="text-[12px] font-semibold text-[#e6eaf5]">
                   Trust starts with verification
                 </p>
+
                 <p className="mt-1 text-[11px] leading-5 text-[#a2aec4]">
-                  Recruiter accounts are reviewed to help maintain a reliable
-                  hiring environment.
+                  Recruiter accounts are reviewed to help
+                  maintain a reliable hiring environment.
                 </p>
               </div>
             </div>
@@ -390,6 +483,7 @@ function RecruiterRegistrationPage() {
 
           <footer className="relative flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.08] pt-5 text-[11px] text-[#8d9bb4]">
             <span>© 2026 R&PMS</span>
+
             <span className="flex gap-5">
               <span>Privacy</span>
               <span>Terms</span>
@@ -400,6 +494,7 @@ function RecruiterRegistrationPage() {
         {/* Registration form */}
         <section className="flex min-h-screen items-start justify-center px-5 py-8 sm:px-8 lg:px-8 xl:px-12">
           <div className="w-full max-w-[650px]">
+            {/* Mobile branding */}
             <div className="mb-6 lg:hidden">
               <div className="inline-flex rounded-xl bg-[#0d1528] p-3">
                 <BrandLogo />
@@ -410,7 +505,9 @@ function RecruiterRegistrationPage() {
             <div className="mb-6 inline-flex rounded-lg border border-[#e1e5ee] bg-[#eef0f5] p-1">
               <button
                 type="button"
-                onClick={() => handleAccountTypeChange('candidate')}
+                onClick={() =>
+                  handleAccountTypeChange('candidate')
+                }
                 className={`flex items-center gap-2 rounded-md px-3.5 py-2 text-[12px] font-semibold transition ${
                   accountType === 'candidate'
                     ? 'bg-white text-[#42465a] shadow-sm'
@@ -423,7 +520,9 @@ function RecruiterRegistrationPage() {
 
               <button
                 type="button"
-                onClick={() => handleAccountTypeChange('recruiter')}
+                onClick={() =>
+                  handleAccountTypeChange('recruiter')
+                }
                 className={`flex items-center gap-2 rounded-md px-3.5 py-2 text-[12px] font-semibold transition ${
                   accountType === 'recruiter'
                     ? 'bg-gradient-to-r from-[#5549ed] to-[#493de0] text-white shadow-sm'
@@ -439,16 +538,22 @@ function RecruiterRegistrationPage() {
               <h2 className="text-[29px] font-bold leading-tight tracking-[-1px] text-[#142039] sm:text-[32px]">
                 Create your recruiter account
               </h2>
+
               <p className="mt-2 text-[13px] leading-6 text-[#71809b] sm:text-[14px]">
-                Set up your recruiter account and submit your company details
-                for verification.
+                Set up your recruiter account and submit
+                your company details for verification.
               </p>
             </header>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-6"
+            >
               {/* Account information */}
               <section>
-                <SectionHeading>ACCOUNT INFORMATION</SectionHeading>
+                <SectionHeading>
+                  ACCOUNT INFORMATION
+                </SectionHeading>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <FormField
@@ -490,7 +595,11 @@ function RecruiterRegistrationPage() {
                     value={form.password}
                     onChange={updateField}
                     visible={showPassword}
-                    onToggle={() => setShowPassword((current) => !current)}
+                    onToggle={() =>
+                      setShowPassword(
+                        (current) => !current,
+                      )
+                    }
                     placeholder="At least 8 characters"
                   />
 
@@ -501,22 +610,27 @@ function RecruiterRegistrationPage() {
                     onChange={updateField}
                     visible={showConfirmPassword}
                     onToggle={() =>
-                      setShowConfirmPassword((current) => !current)
+                      setShowConfirmPassword(
+                        (current) => !current,
+                      )
                     }
                     placeholder="Re-enter password"
                   />
                 </div>
 
-                {form.confirmPassword.length > 0 && !passwordsMatch && (
-                  <p className="mt-2 text-[11px] text-red-600">
-                    Passwords do not match.
-                  </p>
-                )}
+                {form.confirmPassword.length > 0 &&
+                  !passwordsMatch && (
+                    <p className="mt-2 text-[11px] text-red-600">
+                      Passwords do not match.
+                    </p>
+                  )}
               </section>
 
               {/* Professional information */}
               <section>
-                <SectionHeading>PROFESSIONAL INFORMATION</SectionHeading>
+                <SectionHeading>
+                  PROFESSIONAL INFORMATION
+                </SectionHeading>
 
                 <FormField
                   label="Job title / Designation"
@@ -552,14 +666,16 @@ function RecruiterRegistrationPage() {
                     onChange={updateField}
                     placeholder="https://www.company.com"
                     type="url"
-                    required={false}
+                    required
                   />
                 </div>
               </section>
 
               {/* Company verification */}
               <section>
-                <SectionHeading>COMPANY VERIFICATION</SectionHeading>
+                <SectionHeading>
+                  COMPANY VERIFICATION
+                </SectionHeading>
 
                 <input
                   ref={fileInputRef}
@@ -579,15 +695,21 @@ function RecruiterRegistrationPage() {
                       <p className="truncate text-[12px] font-semibold text-[#303750]">
                         {companyDocument.name}
                       </p>
+
                       <p className="mt-1 text-[11px] text-[#7b8499]">
-                        {(companyDocument.size / (1024 * 1024)).toFixed(2)} MB
-                        · Ready for upload
+                        {(
+                          companyDocument.size /
+                          (1024 * 1024)
+                        ).toFixed(2)}{' '}
+                        MB · Ready for upload
                       </p>
                     </div>
 
                     <button
                       type="button"
-                      onClick={() => setCompanyDocument(null)}
+                      onClick={() =>
+                        setCompanyDocument(null)
+                      }
                       aria-label="Remove company document"
                       className="rounded-md p-2 text-[#7b8499] transition hover:bg-white hover:text-red-600"
                     >
@@ -600,7 +722,9 @@ function RecruiterRegistrationPage() {
                       event.preventDefault();
                       setIsDragging(true);
                     }}
-                    onDragLeave={() => setIsDragging(false)}
+                    onDragLeave={() =>
+                      setIsDragging(false)
+                    }
                     onDrop={handleDrop}
                     className={`rounded-xl border-2 border-dashed p-6 text-center transition ${
                       isDragging
@@ -614,17 +738,20 @@ function RecruiterRegistrationPage() {
 
                     <button
                       type="button"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() =>
+                        fileInputRef.current?.click()
+                      }
                       className="mt-3 text-[12px] font-semibold text-[#293247] hover:text-[#5046e5]"
                     >
                       Click to upload or drag and drop
                     </button>
 
                     <p className="mt-2 text-[11px] leading-5 text-[#7b8499]">
-                      Upload a document that verifies your association with the
-                      company.
+                      Upload a document that verifies your
+                      association with the company.
                       <br />
-                      Supported formats: PDF, JPG or PNG · Maximum 5 MB.
+                      Supported formats: PDF, JPG or PNG ·
+                      Maximum 5 MB.
                     </p>
                   </div>
                 )}
@@ -634,9 +761,10 @@ function RecruiterRegistrationPage() {
                     size={16}
                     className="mt-0.5 shrink-0 text-[#7c8192]"
                   />
+
                   <p className="text-[11px] leading-5 text-[#596174]">
-                    Your recruiter account will be reviewed before full
-                    recruiter access is granted.
+                    Your recruiter account will be reviewed
+                    before full recruiter access is granted.
                   </p>
                 </div>
               </section>
@@ -648,10 +776,13 @@ function RecruiterRegistrationPage() {
                     type="checkbox"
                     checked={termsAccepted}
                     onChange={(event) =>
-                      setTermsAccepted(event.target.checked)
+                      setTermsAccepted(
+                        event.target.checked,
+                      )
                     }
                     className="mt-0.5 h-4 w-4 shrink-0 accent-[#5046e5] focus:ring-[#5046e5]"
                   />
+
                   <span className="text-[11px] leading-5 text-[#596174]">
                     I agree to the{' '}
                     <a
@@ -683,10 +814,17 @@ function RecruiterRegistrationPage() {
                   }`}
                 >
                   {messageType === 'error' ? (
-                    <Info size={16} className="mt-0.5 shrink-0" />
+                    <Info
+                      size={16}
+                      className="mt-0.5 shrink-0"
+                    />
                   ) : (
-                    <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+                    <CheckCircle2
+                      size={16}
+                      className="mt-0.5 shrink-0"
+                    />
                   )}
+
                   <p>{message}</p>
                 </div>
               )}
@@ -698,7 +836,10 @@ function RecruiterRegistrationPage() {
               >
                 {isLoading ? (
                   <>
-                    <LoaderCircle size={16} className="animate-spin" />
+                    <LoaderCircle
+                      size={16}
+                      className="animate-spin"
+                    />
                     Creating account...
                   </>
                 ) : (

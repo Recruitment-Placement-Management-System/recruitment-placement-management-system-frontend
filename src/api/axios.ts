@@ -50,7 +50,13 @@ api.interceptors.response.use(
     } catch (refreshError) {
       useAuthStore.getState().logout();
 
-      window.location.href = '/login';
+      const path = window.location.pathname;
+
+      if (path.startsWith('/admin')) {
+    window.location.href = '/admin/login';
+  } else {
+    window.location.href = '/login';
+  }
 
       return Promise.reject(refreshError);
     }
