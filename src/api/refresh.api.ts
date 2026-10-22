@@ -12,4 +12,4 @@ export const refreshAccessToken = async () => {
   const response = await refreshApi.post('/auth/refresh-token');
 
   return response.data;
-};
+}

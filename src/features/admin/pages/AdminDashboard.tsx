@@ -5,6 +5,7 @@ import {
   BarChart3,
   Bell,
   BriefcaseBusiness,
+  ArrowDownUp,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -15,6 +16,7 @@ import {
   ShieldCheck,
   UserCog,
   Users,
+  X,
 } from 'lucide-react';
 
 import { getAdminUsers } from '../../../api/admin.api';
@@ -24,6 +26,8 @@ import useAuthStore from '../../../store/auth.store';
 import type {
   AdminUser,
   AdminUsersPagination,
+  AdminUsersSortDirection,
+  AdminUsersSortField,
 } from '../types/admin.types';
 
 function AdminDashboard() {
@@ -40,14 +44,28 @@ function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const [sort,setSort] = useState(false)
+  const [sortBy, setSortBy] = useState<AdminUsersSortField>('createdAt');
+  const [sortOrder, setSortOrder] = useState<AdminUsersSortDirection>('desc');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 300);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchInput]);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadUsers = async () => {
+      setIsLoading(true);
+
       try {
-        const response = await getAdminUsers(page, 10);
+        const response = await getAdminUsers(page, 10, sortBy, sortOrder, search);
 
         if (cancelled) {
           return;
@@ -83,7 +101,7 @@ function AdminDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [page]);
+  }, [page, search, sortBy, sortOrder]);
 
   const handleLogout = async () => {
     try {
@@ -104,6 +122,16 @@ function AdminDashboard() {
   const handlePageChange = (newPage: number) => {
     setIsLoading(true);
     setPage(newPage);
+  };
+
+  const handleSortByChange = (newSortBy: AdminUsersSortField) => {
+    setSortBy(newSortBy);
+    setPage(1);
+  };
+
+  const handleSortOrderChange = () => {
+    setSortOrder((current) => current === 'asc' ? 'desc' : 'asc');
+    setPage(1);
   };
 
   return (
@@ -173,8 +201,6 @@ function AdminDashboard() {
             <BriefcaseBusiness size={18} />
             Recruiters
           </button>
-
-          <button onClick={()=>setSort(!sort)}>sort</button>
 
           <p className="mt-6 px-3 text-[10px] font-bold uppercase tracking-wide text-[#8A817C]">
             Verification
@@ -422,20 +448,60 @@ function AdminDashboard() {
                 </p>
               </div>
 
-              <div className="relative w-full sm:w-[280px]">
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                <label className="relative block min-w-0 flex-1 sm:w-[240px] sm:flex-none">
+                  <Search
+                    size={17}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#9A918B]"
+                    aria-hidden="true"
+                  />
+                  <input
+                    type="search"
+                    value={searchInput}
+                    onChange={(event) => setSearchInput(event.target.value)}
+                    placeholder="Search name or email..."
+                    aria-label="Search users by name or email"
+                    className="h-10 w-full rounded-lg border border-[#E5DDD8] bg-[#FBF8F6] pl-10 pr-9 text-sm text-[#302D2B] outline-none transition placeholder:text-[#9A918B] focus:border-[#B77A62] focus:bg-white focus:ring-2 focus:ring-[#B77A62]/15"
+                  />
+                  {searchInput && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchInput('')}
+                      aria-label="Clear search"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[#817A75] hover:bg-[#EEE7E2] hover:text-[#302D2B] focus-visible:outline-2 focus-visible:outline-[#9B5D45]"
+                    >
+                      <X size={15} aria-hidden="true" />
+                    </button>
+                  )}
+                </label>
 
-                <Search
-                  size={17}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9A918B]"
-                />
+                <label className="flex h-10 items-center gap-2 rounded-lg border border-[#E5DDD8] bg-white px-3 text-sm text-[#514A46] focus-within:border-[#B77A62] focus-within:ring-2 focus-within:ring-[#B77A62]/15">
+                  <span className="text-[#817A75]">Sort</span>
+                  <select
+                    value={sortBy}
+                    onChange={(event) => handleSortByChange(event.target.value as AdminUsersSortField)}
+                    aria-label="Sort users by"
+                    className="min-w-0 bg-transparent font-medium outline-none"
+                  >
+                    <option value="createdAt">Date</option>
+                    <option value="fullName">Name</option>
+                    <option value="email">Email</option>
+                  </select>
+                </label>
 
-                <input
-                  type="text"
-                  placeholder="Search users..."
-                  disabled
-                  className="h-10 w-full rounded-lg border border-[#E5DDD8] bg-[#FBF8F6] pl-10 pr-3 text-sm outline-none placeholder:text-[#9A918B] disabled:cursor-not-allowed"
-                />
-
+                <button
+                  type="button"
+                  onClick={handleSortOrderChange}
+                  aria-label={`Sort ${sortOrder === 'asc' ? 'descending' : 'ascending'}`}
+                  className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-[#E5DDD8] bg-white px-3 text-sm font-medium text-[#514A46] transition hover:border-[#D9C5BA] hover:bg-[#FCF5F1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#9B5D45]"
+                >
+                  <ArrowDownUp size={15} aria-hidden="true" />
+                  <span>
+                    {sortOrder === 'asc'
+                      ? sortBy === 'createdAt' ? 'Oldest first' : 'A-Z'
+                      : sortBy === 'createdAt' ? 'Newest first' : 'Z-A'}
+                  </span>
+                </button>
               </div>
 
             </div>
@@ -457,7 +523,7 @@ function AdminDashboard() {
             {/* Empty */}
             {!isLoading && !error && users.length === 0 && (
               <div className="px-6 py-16 text-center text-sm text-[#817A75]">
-                No users found.
+                {search ? 'No users match your search.' : 'No users found.'}
               </div>
             )}
 

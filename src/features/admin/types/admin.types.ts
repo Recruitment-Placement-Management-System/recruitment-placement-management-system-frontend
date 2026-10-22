@@ -3,17 +3,14 @@ export interface AdminLoginData{
     password:string;
 }
 
-export interface AdminUser{
-    id:string;
-    email:string;
-    roles:string[];
-}
-
 export interface AdminLoginResponse{
     message:string;
     accessToken:string;
     user:AdminUser
 }
+
+export type AdminUsersSortField = 'createdAt' | 'fullName' | 'email';
+export type AdminUsersSortDirection = 'asc' | 'desc';
 
 export interface AdminUser {
   id: string;
