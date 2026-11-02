@@ -1,20 +1,121 @@
+import { Navigate,Route,Routes } from "react-router-dom";
 
-function App() {
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-100 p-6">
-      <section className="rounded-xl bg-white p-8 shadow-lg">
-        <h1 className="text-3xl font-bold text-blue-700">
-          R&PMS Frontend
-        </h1>
-        <p className="mt-3 text-gray-600">
-          React, TypeScript and Tailwind CSS are ready.
-        </p>
-        <button className="mt-6 rounded-lg bg-blue-600 px-5 py-2 text-white hover:bg-blue-700">
-          Test Button
-        </button>
-      </section>
-    </main>
+import CandidateDashboard from "./features/auth/pages/CandidateDashboard";
+import CandidateRegistration from './features/auth/pages/CandidateRegistration';
+import EmailVerification from './features/auth/pages/EmailVerification';
+import ForgotPassword from './features/auth/pages/ForgotPassword';
+import Login from './features/auth/pages/Login';
+import RecruiterDashboard from './features/auth/pages/RecruiterDashboard';
+import RecruiterRegistration from './features/auth/pages/RecruiterRegistration';
+import ResetPassword from './features/auth/pages/ResetPassword';
+
+import AdminLogin from "./features/admin/pages/AdminLogin";
+import AdminDashboard from "./features/admin/pages/AdminDashboard";
+
+import ProtectedRoute from "./features/auth/components/ProctectedRoute";
+import GuestRoute from "./features/auth/components/GuestRoute";
+
+import { useEffect } from "react";
+import { refreshAccessToken } from "./api/refresh.api";
+import useAuthStore from "./store/auth.store";
+
+function App(){
+
+  const login = useAuthStore((state)=>state.login);
+  const setInitializing = useAuthStore((state)=>state.setInitializing);
+
+   useEffect(() => {
+    let cancelled = false;
+
+    const restoreSession = async () => {
+      try {
+        const response = await refreshAccessToken();
+
+        if (cancelled) return;
+        login(
+          response.accessToken,
+          response.user
+        );
+      } catch {
+        // No valid refresh session.
+        // User remains logged out.
+      } finally {
+        if (!cancelled) setInitializing(false);
+      }
+    };
+
+    restoreSession();
+
+    return () => { cancelled = true; };
+  }, [login, setInitializing]);
+  return(
+    <Routes>
+
+      {/*authentication*/}
+
+      <Route element={<GuestRoute />}>
+        <Route path="/login" element={<Login/>} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+      </Route>
+
+      <Route path="/candidate/register" element={<CandidateRegistration/>} />
+
+      <Route
+        path="/recruiter/register"
+        element={<RecruiterRegistration />}
+      />
+
+      <Route
+        path="/verify-email"
+        element={<EmailVerification />}
+      />
+
+      <Route
+        path="/forgot-password"
+        element={<ForgotPassword />}
+      />
+
+      <Route
+        path="/reset-password"
+        element={<ResetPassword />}
+      />
+
+      {/* Candidate */}
+      <Route element={<ProtectedRoute allowedRoles={['candidate']}/>}>
+      <Route
+        path="/candidate/dashboard"
+        element={<CandidateDashboard />}
+      />
+      </Route>
+
+      {/* Recruiter */}
+      <Route element={<ProtectedRoute allowedRoles={['recruiter']} />}>
+  <Route
+    path="/recruiter/dashboard"
+    element={<RecruiterDashboard />}
+  />
+</Route>
+
+<Route element={<ProtectedRoute allowedRoles={['admin']} redirectTo="/admin/login"/>}>
+  <Route
+    path="/admin/dashboard"
+    element={<AdminDashboard />}
+  />
+</Route>
+
+      {/* Default */}
+      <Route
+        path="/"
+        element={<Navigate to="/login" replace />}
+      />
+
+      {/* Unknown route */}
+      <Route
+        path="*"
+        element={<Navigate to="/login" replace />}
+      />
+    </Routes>
   )
 }
 
-export default App
+export default App;

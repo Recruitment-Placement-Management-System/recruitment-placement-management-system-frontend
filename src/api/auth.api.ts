@@ -1,0 +1,70 @@
+import api from "./axios";
+import type { RegisterCandidateData,VerifyEmailData,
+    loginData,LoginResponse,ResetPasswordData,RegisterRecruiterData 
+} from "../features/auth/types/auth.types";
+
+export const registerCandidate = async(
+    data:RegisterCandidateData
+)=>{
+    const response = await api.post('/auth/register',data);
+    return response.data;
+}
+
+export const verifyEmail = async(
+    data:VerifyEmailData,
+)=>{
+    const response = await api.post('/auth/verify-email',data)
+    return response.data;
+}
+
+export const resendVerificationEmail = async (
+  email: string
+) => {
+  const response = await api.post('/auth/resend-verification', {
+    email,
+  });
+
+  return response.data;
+};
+
+export const changeVerificationEmail = async (data: {
+  currentEmail: string;
+  newEmail: string;
+}) => {
+  const response = await api.post('/auth/change-verification-email', data);
+  return response.data;
+};
+
+export const login = async(
+    data:loginData
+):Promise<LoginResponse>=>{
+    const response = await api.post('/auth/login',data);
+    return response.data;
+}
+
+export const logout = async ()=>{
+    const response = await api.post('/auth/logout');
+    return response.data;
+}
+
+export const forgotPassword = async(email:string)=>{
+    const response = await api.post('/auth/forgot-password',{
+        email,
+    })
+    return response.data;
+}
+
+export const resetPassword = async(
+    data:ResetPasswordData
+)=>{
+    const response = await api.post('/auth/reset-password',data);
+    return response.data;
+}
+
+
+export const registerRecruiter = async (
+    data:RegisterRecruiterData
+)=>{
+    const response = await api.post('/auth/register/recruiter',data);
+    return response.data;
+}
