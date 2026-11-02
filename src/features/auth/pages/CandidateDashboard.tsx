@@ -3,11 +3,12 @@ import { useState } from 'react';
 
 import { logout } from '../../../api/auth.api';
 import useAuthStore from '../../../store/auth.store';
+import { CandidateSidebar } from '../../../components/sidebars/CandidateSidebar';
+import { Navbar } from '../../../components/common/Navbar';
+import { Footer } from '../../../components/common/Footer';
 
 import {
-  LayoutDashboard,
   UserRound,
-  FileText,
   Search,
   BriefcaseBusiness,
   CalendarDays,
@@ -15,11 +16,8 @@ import {
   Mail,
   Bell,
   Settings,
-  CircleHelp,
-  Menu,
-  X,
   ChevronRight,
-  ChevronDown,
+  X,
   Bookmark,
   Video,
   Clock3,
@@ -29,23 +27,6 @@ import {
   LogOut,
   Sparkles,
 } from 'lucide-react';
-
-const navigation = [
-  { label: 'Dashboard', icon: LayoutDashboard },
-  { label: 'My Profile', icon: UserRound },
-  { label: 'Resume', icon: FileText },
-  { label: 'Find Jobs', icon: Search },
-  { label: 'My Applications', icon: BriefcaseBusiness },
-  { label: 'Interviews', icon: CalendarDays },
-  { label: 'Offers', icon: Award },
-  { label: 'Messages', icon: Mail },
-  { label: 'Notifications', icon: Bell },
-];
-
-const settingsNavigation = [
-  { label: 'Settings', icon: Settings },
-  { label: 'Help / Support', icon: CircleHelp },
-];
 
 const statistics = [
   {
@@ -126,144 +107,6 @@ const recentApplications = [
   },
 ];
 
-function BrandLogo() {
-  return (
-    <div className="flex items-center gap-3">
-      <div className="grid h-10 w-10 grid-cols-2 gap-[4px] rounded-[9px] bg-[#5147e8] p-[8px] shadow-[0_4px_12px_rgba(81,71,232,0.25)]">
-        <span className="rounded-[2px] bg-white" />
-        <span className="rounded-[2px] bg-white/75" />
-        <span className="rounded-[2px] bg-white/75" />
-        <span className="rounded-[2px] bg-white" />
-      </div>
-
-      <div>
-        <p className="text-[21px] font-bold tracking-[-0.7px] text-[#172033]">
-          R&PMS
-        </p>
-
-        <p className="mt-1 text-[9px] font-semibold tracking-[1.5px] text-[#7c879e]">
-          CANDIDATE PORTAL
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function Sidebar({
-  activePage,
-  onNavigate,
-  open,
-  onClose,
-}: {
-  activePage: string;
-  onNavigate: (page: string) => void;
-  open: boolean;
-  onClose: () => void;
-}) {
-  const renderNavigation = (items: typeof navigation) =>
-    items.map(({ label, icon: Icon }) => {
-      const active = activePage === label;
-
-      return (
-        <button
-          key={label}
-          type="button"
-          onClick={() => {
-            onNavigate(label);
-            onClose();
-          }}
-          className={`group flex w-full items-center gap-3 rounded-lg px-3.5 py-3 text-left text-[13px] font-semibold transition ${
-            active
-              ? 'bg-gradient-to-r from-[#eeecff] to-[#e8e6ff] text-[#5046e5] shadow-sm shadow-[#5046e5]/[0.04]'
-              : 'text-[#586178] hover:bg-[#f1f2f8] hover:text-[#5046e5]'
-          }`}
-        >
-          <Icon
-            size={19}
-            strokeWidth={active ? 2.2 : 1.8}
-            className={
-              active
-                ? 'text-[#5046e5]'
-                : 'text-[#929cb0] transition group-hover:text-[#5046e5]'
-            }
-          />
-
-          <span>{label}</span>
-
-          {label === 'Notifications' && (
-            <span className="ml-auto h-2 w-2 rounded-full bg-[#ee596a]" />
-          )}
-        </button>
-      );
-    });
-
-  return (
-    <>
-      {open && (
-        <button
-          type="button"
-          aria-label="Close sidebar overlay"
-          onClick={onClose}
-          className="fixed inset-0 z-40 bg-[#0d1528]/40 lg:hidden"
-        />
-      )}
-
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[250px] flex-col border-r border-[#e5e7f0] bg-[#fbfaff] transition-transform duration-300 lg:translate-x-0 ${
-          open ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        <div className="flex h-[84px] shrink-0 items-center justify-between border-b border-[#edeef5] px-5">
-          <BrandLogo />
-
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close navigation"
-            className="rounded-lg p-2 text-[#7c879e] hover:bg-[#f0efff] lg:hidden"
-          >
-            <X size={19} />
-          </button>
-        </div>
-
-        <nav className="flex-1 overflow-y-auto px-3.5 py-5">
-          <div className="space-y-1">{renderNavigation(navigation)}</div>
-
-          <div className="my-5 border-t border-[#e7e8f0]" />
-
-          <div className="space-y-1">
-            {renderNavigation(settingsNavigation)}
-          </div>
-        </nav>
-
-        <div className="border-t border-[#e9eaf2] p-3.5">
-          <button
-            type="button"
-            onClick={() => onNavigate('My Profile')}
-            className="flex w-full items-center gap-3 rounded-xl bg-gradient-to-r from-[#f0efff] to-[#f5f5fc] p-3 text-left transition hover:from-[#e9e6ff] hover:to-[#efedff]"
-          >
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#6155f3] to-[#3e35c8] text-[13px] font-bold text-white">
-              AC
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[12px] font-bold text-[#202a40]">
-                Alex Candidate
-              </p>
-
-              <p className="mt-0.5 text-[11px] text-[#78839a]">
-                Candidate account
-              </p>
-            </div>
-
-            <ChevronDown size={15} className="shrink-0 text-[#7b849b]" />
-          </button>
-        </div>
-      </aside>
-    </>
-  );
-}
-
 function SectionTitle({
   title,
   action,
@@ -296,6 +139,7 @@ function SectionTitle({
 function CandidateDashboard() {
   const navigate = useNavigate();
   const logoutUser = useAuthStore((state) => state.logout);
+  const userEmail = useAuthStore((state) => state.user?.email);
 
   const [activePage, setActivePage] = useState('Dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -331,14 +175,11 @@ function CandidateDashboard() {
   const handleLogout = async () => {
     try {
       await logout();
-
-      logoutUser();
-
-      navigate('/login', { replace: true });
     } catch (error) {
       console.error('Logout failed:', error);
-
-      setNotice('Logout failed. Please try again.');
+    } finally {
+      logoutUser();
+      navigate('/login', { replace: true });
     }
   };
 
@@ -366,30 +207,23 @@ function CandidateDashboard() {
 
   return (
     <main className="min-h-screen bg-[#f7f8fc] text-[#172033]">
-      <Sidebar
+      <CandidateSidebar
         activePage={activePage}
         onNavigate={navigateTo}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        profile={{
+          name: userEmail ?? 'Candidate',
+          description: 'Candidate account',
+          initials: userEmail?.slice(0, 2).toUpperCase() ?? 'CA',
+        }}
+        onProfileClick={() => navigateTo('My Profile')}
       />
 
       <div className="min-h-screen lg:pl-[250px]">
         {/* Top navigation */}
-        <header className="sticky top-0 z-30 flex h-[76px] items-center gap-3 border-b border-[#e7e9f1] bg-white/95 px-4 backdrop-blur-md sm:px-6 lg:px-8">
-          <button
-            type="button"
-            aria-label="Open navigation"
-            onClick={() => setSidebarOpen(true)}
-            className="rounded-lg p-2 text-[#66718a] hover:bg-[#f0efff] lg:hidden"
-          >
-            <Menu size={21} />
-          </button>
-
-          <h1 className="hidden shrink-0 text-[20px] font-bold tracking-[-0.5px] text-[#20283a] sm:block">
-            {activePage}
-          </h1>
-
-          <div className="relative ml-0 w-full max-w-[430px] sm:ml-5">
+        <Navbar title={activePage} onMenuClick={() => setSidebarOpen(true)}>
+          <div className="relative min-w-0 w-full max-w-[430px]">
             <Search
               size={18}
               className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8792a9]"
@@ -452,7 +286,7 @@ function CandidateDashboard() {
                 }}
                 className="ml-1 grid h-10 w-10 place-items-center rounded-full border-2 border-[#e5e2ff] bg-gradient-to-br from-[#6155f3] to-[#3930b9] text-[12px] font-bold text-white transition hover:ring-4 hover:ring-[#5046e5]/10"
               >
-                AC
+                {userEmail?.slice(0, 2).toUpperCase() ?? 'CA'}
               </button>
 
               {showProfileMenu && (
@@ -489,7 +323,7 @@ function CandidateDashboard() {
               )}
             </div>
           </div>
-        </header>
+        </Navbar>
 
         {/* Main dashboard content */}
         <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
@@ -912,10 +746,7 @@ function CandidateDashboard() {
             </aside>
           </div>
 
-          <footer className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-[#e5e7f0] py-5 text-[10px] text-[#8992a6]">
-            <p>© 2026 R&PMS · Recruitment & Placement Management System</p>
-            <p>Candidate Portal</p>
-          </footer>
+          <Footer role="Candidate Portal" />
         </div>
       </div>
     </main>

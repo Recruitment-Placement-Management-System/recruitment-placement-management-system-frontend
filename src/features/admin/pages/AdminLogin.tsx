@@ -26,6 +26,14 @@ function AdminLogin() {
 
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [didSubmit, setDidSubmit] = useState(false);
+  const normalizedEmail = email.trim();
+  const emailError = !normalizedEmail
+    ? 'Email is required.'
+    : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+      ? 'Enter a valid email address.'
+      : '';
+  const passwordError = password ? '' : 'Password is required.';
 
   const handleSubmit = async (
     event: FormEvent<HTMLFormElement>
@@ -33,15 +41,16 @@ function AdminLogin() {
     event.preventDefault();
 
     setMessage('');
+    setDidSubmit(true);
+    if (!normalizedEmail || emailError || !password) return;
+
     setIsLoading(true);
 
     try {
       const response = await adminLogin({
-        email,
+        email: normalizedEmail,
         password,
       });
-
-      console.log('Admin login response:', response);
 
       loginUser(
         response.accessToken,
@@ -50,13 +59,15 @@ function AdminLogin() {
 
       navigate('/admin/dashboard');
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        setMessage(
-          error.response?.data?.message ||
-            'Unable to login. Please try again.'
-        );
+      if (axios.isAxiosError(error) && !error.response) {
+        setMessage('Unable to reach the server. Check your connection and try again.');
+      } else if (
+        axios.isAxiosError(error) &&
+        typeof error.response?.data?.message === 'string'
+      ) {
+        setMessage(error.response.data.message);
       } else {
-        setMessage('Unable to login. Please try again.');
+        setMessage('Unable to sign in. Please try again.');
       }
     } finally {
       setIsLoading(false);
@@ -97,14 +108,15 @@ function AdminLogin() {
               Admin Sign In
             </h1>
 
-            <p className="mt-2 text-center text-[17px] text-[#817A75]">
+            {/* <p className="mt-2 text-center text-[17px] text-[#817A75]">
               Sign in to access the R&amp;PMS administration console.
-            </p>
+            </p> */}
           </div>
 
           {/* Form */}
           <form
             onSubmit={handleSubmit}
+            noValidate
             className="mt-9"
           >
 
@@ -134,9 +146,16 @@ function AdminLogin() {
                     setMessage('');
                   }}
                   required
+                  aria-invalid={Boolean((email || didSubmit) && emailError)}
+                  aria-describedby="admin-email-tip"
                   className="h-[54px] w-full rounded-[10px] border border-[#DED8D4] bg-white pl-12 pr-4 text-[16px] text-[#302D2B] outline-none transition placeholder:text-[#8E8883] focus:border-[#DD7655] focus:ring-2 focus:ring-[#DD7655]/10"
                 />
               </div>
+              {(email || didSubmit) && emailError && (
+                <p id="admin-email-tip" className="mt-1.5 text-sm text-red-600">
+                  {emailError}
+                </p>
+              )}
             </div>
 
             {/* Password */}
@@ -165,6 +184,8 @@ function AdminLogin() {
                     setMessage('');
                   }}
                   required
+                  aria-invalid={Boolean((password || didSubmit) && passwordError)}
+                  aria-describedby="admin-password-tip"
                   className="h-[54px] w-full rounded-[10px] border border-[#DED8D4] bg-white pl-12 pr-12 text-[16px] text-[#302D2B] outline-none transition placeholder:text-[#8E8883] focus:border-[#DD7655] focus:ring-2 focus:ring-[#DD7655]/10"
                 />
 
@@ -185,6 +206,11 @@ function AdminLogin() {
                   )}
                 </button>
               </div>
+              {(password || didSubmit) && passwordError && (
+                <p id="admin-password-tip" className="mt-1.5 text-sm text-red-600">
+                  {passwordError}
+                </p>
+              )}
             </div>
 
             {/* Remember / Forgot */}
@@ -215,7 +241,7 @@ function AdminLogin() {
 
             {/* Error */}
             {message && (
-              <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              <div role="alert" aria-live="polite" className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
                 {message}
               </div>
             )}

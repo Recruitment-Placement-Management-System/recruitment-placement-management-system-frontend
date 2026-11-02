@@ -4,16 +4,11 @@ import axios from 'axios';
 import {
   BarChart3,
   Bell,
-  BriefcaseBusiness,
   ArrowDownUp,
   ChevronLeft,
   ChevronRight,
-  ClipboardList,
   FileText,
-  LayoutDashboard,
-  LogOut,
   Search,
-  ShieldCheck,
   UserCog,
   Users,
   X,
@@ -22,6 +17,9 @@ import {
 import { getAdminUsers } from '../../../api/admin.api';
 import { logout } from '../../../api/auth.api';
 import useAuthStore from '../../../store/auth.store';
+import { AdminSidebar } from '../../../components/sidebars/AdminSidebar';
+import { Navbar } from '../../../components/common/Navbar';
+import { Footer } from '../../../components/common/Footer';
 
 import type {
   AdminUser,
@@ -43,6 +41,8 @@ function AdminDashboard() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const userEmail = useAuthStore((state) => state.user?.email);
 
   const [sortBy, setSortBy] = useState<AdminUsersSortField>('createdAt');
   const [sortOrder, setSortOrder] = useState<AdminUsersSortDirection>('desc');
@@ -106,16 +106,11 @@ function AdminDashboard() {
   const handleLogout = async () => {
     try {
       await logout();
-
-      logoutUser();
-
-      navigate('/admin/login', {
-        replace: true,
-      });
     } catch (error) {
       console.error('Logout failed:', error);
-
-      setError('Logout failed. Please try again.');
+    } finally {
+      logoutUser();
+      navigate('/admin/login', { replace: true });
     }
   };
 
@@ -137,180 +132,30 @@ function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#FBF7F4] text-[#302D2B]">
 
-      {/* Sidebar */}
-      <aside className="fixed left-0 top-0 hidden h-screen w-[230px] border-r border-[#E9E1DC] bg-white lg:block">
-
-        {/* Brand */}
-        <div className="flex h-[72px] items-center gap-3 border-b border-[#E9E1DC] px-5">
-
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#DD7655] text-sm font-bold text-white">
-            R
-          </div>
-
-          <div>
-            <p className="text-[17px] font-bold leading-5 text-[#292625]">
-              R&amp;PMS
-            </p>
-
-            <p className="text-[10px] font-bold tracking-[1px] text-[#756D68]">
-              ADMIN CONSOLE
-            </p>
-          </div>
-
-        </div>
-
-        {/* Navigation */}
-        <nav className="px-3 py-5">
-
-          <p className="px-3 text-[10px] font-bold uppercase tracking-wide text-[#8A817C]">
-            Overview
-          </p>
-
-          <button
-            type="button"
-            className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#514A46] hover:bg-[#F8F1ED]"
-          >
-            <LayoutDashboard size={18} />
-            Dashboard
-          </button>
-
-          <p className="mt-6 px-3 text-[10px] font-bold uppercase tracking-wide text-[#8A817C]">
-            User Management
-          </p>
-
-          <button
-            type="button"
-            className="mt-2 flex w-full items-center gap-3 rounded-lg bg-[#F7E9E3] px-3 py-2.5 text-sm font-semibold text-[#B95235]"
-          >
-            <Users size={18} />
-            Users
-          </button>
-
-          <button
-            type="button"
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#514A46] hover:bg-[#F8F1ED]"
-          >
-            <UserCog size={18} />
-            Candidates
-          </button>
-
-          <button
-            type="button"
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#514A46] hover:bg-[#F8F1ED]"
-          >
-            <BriefcaseBusiness size={18} />
-            Recruiters
-          </button>
-
-          <p className="mt-6 px-3 text-[10px] font-bold uppercase tracking-wide text-[#8A817C]">
-            Verification
-          </p>
-
-          <button
-            type="button"
-            className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#514A46] hover:bg-[#F8F1ED]"
-          >
-            <ShieldCheck size={18} />
-            Verification Queue
-          </button>
-
-          <p className="mt-6 px-3 text-[10px] font-bold uppercase tracking-wide text-[#8A817C]">
-            Recruitment
-          </p>
-
-          <button
-            type="button"
-            className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#514A46] hover:bg-[#F8F1ED]"
-          >
-            <BriefcaseBusiness size={18} />
-            Jobs
-          </button>
-
-          <button
-            type="button"
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#514A46] hover:bg-[#F8F1ED]"
-          >
-            <ClipboardList size={18} />
-            Applications
-          </button>
-
-          <p className="mt-6 px-3 text-[10px] font-bold uppercase tracking-wide text-[#8A817C]">
-            Insights
-          </p>
-
-          <button
-            type="button"
-            className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#514A46] hover:bg-[#F8F1ED]"
-          >
-            <BarChart3 size={18} />
-            Analytics
-          </button>
-
-          <button
-            type="button"
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[#514A46] hover:bg-[#F8F1ED]"
-          >
-            <FileText size={18} />
-            Reports
-          </button>
-
-        </nav>
-
-        {/* Admin */}
-        <div className="absolute bottom-0 left-0 w-full border-t border-[#E9E1DC] p-3">
-
-          <div className="flex items-center gap-3 rounded-lg bg-[#F8F1ED] px-3 py-3">
-
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#DD7655] text-white">
-              <UserCog size={18} />
-            </div>
-
-            <div>
-              <p className="text-sm font-semibold text-[#302D2B]">
-                Admin
-              </p>
-
-              <p className="text-[11px] text-[#817A75]">
-                System Administrator
-              </p>
-            </div>
-
-          </div>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[#756D68] hover:bg-[#F8F1ED]"
-          >
-            <LogOut size={17} />
-            Logout
-          </button>
-
-        </div>
-
-      </aside>
+      <AdminSidebar
+        activePage="Users"
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        profile={{
+          name: userEmail ?? 'Admin',
+          description: 'System Administrator',
+          initials: userEmail?.slice(0, 2).toUpperCase() ?? 'AD',
+        }}
+        onLogout={handleLogout}
+      />
 
       {/* Main Area */}
-      <div className="lg:ml-[230px]">
+      <div className="min-h-screen lg:ml-[250px]">
 
         {/* Top Header */}
-        <header className="sticky top-0 z-10 flex h-[72px] items-center justify-between border-b border-[#E9E1DC] bg-white px-5 lg:px-8">
+        <Navbar
+          title="Users"
+          context="Admin Console"
+          onMenuClick={() => setSidebarOpen(true)}
+          accentClass="hover:bg-[#F8F1ED] hover:text-[#B95235]"
+        >
 
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-[#817A75]">
-              Admin Console
-            </span>
-
-            <span className="text-[#C0B8B3]">
-              /
-            </span>
-
-            <span className="font-medium text-[#302D2B]">
-              Users
-            </span>
-          </div>
-
-          <div className="flex items-center gap-4">
+          <div className="ml-auto flex items-center gap-4">
 
             <button
               type="button"
@@ -330,14 +175,14 @@ function AdminDashboard() {
               </div>
 
               <span className="hidden text-sm font-semibold sm:block">
-                Admin
+                {userEmail ?? 'Admin'}
               </span>
 
             </div>
 
           </div>
 
-        </header>
+        </Navbar>
 
         {/* Content */}
         <main className="p-5 lg:p-8">
@@ -742,6 +587,7 @@ function AdminDashboard() {
 
           </section>
 
+          <Footer role="Admin Console" />
         </main>
 
       </div>

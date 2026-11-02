@@ -27,6 +27,14 @@ export const resendVerificationEmail = async (
   return response.data;
 };
 
+export const changeVerificationEmail = async (data: {
+  currentEmail: string;
+  newEmail: string;
+}) => {
+  const response = await api.post('/auth/change-verification-email', data);
+  return response.data;
+};
+
 export const login = async(
     data:loginData
 ):Promise<LoginResponse>=>{

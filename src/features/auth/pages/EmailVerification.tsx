@@ -5,22 +5,25 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import type {
   ChangeEvent,
   ClipboardEvent,
+  FormEvent,
   KeyboardEvent,
 } from 'react';
 
 import { Check, MailCheck, Shield } from 'lucide-react';
 
 import {
+  changeVerificationEmail,
   verifyEmail,
   resendVerificationEmail,
 } from '../../../api/auth.api';
+import useRecruiterRegistrationStore from '../../../store/recruiter-registration.store';
 
 const CODE_LENGTH = 6;
 const RESEND_DELAY = 20;
 
 function EmailVerificationPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [code, setCode] = useState<string[]>(
     Array(CODE_LENGTH).fill(''),
@@ -40,8 +43,53 @@ function EmailVerificationPage() {
   const [resendMessage, setResendMessage] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
+  const recruiterDraftEmail = useRecruiterRegistrationStore((state) => state.form.email);
+  const updateRecruiterEmail = useRecruiterRegistrationStore((state) => state.updateEmail);
+  const clearRecruiterDraft = useRecruiterRegistrationStore((state) => state.clearDraft);
 
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+
+  const handleChangeEmail = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const newEmail = emailValue.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      setError('Enter a valid email address.');
+      return;
+    }
+    if (newEmail.toLowerCase() === searchParams.get('email')?.toLowerCase()) {
+      setEmailValue(newEmail);
+      setEditingEmail(false);
+      setError('');
+      return;
+    }
+
+    setError('');
+    setResendMessage('');
+    setIsUpdatingEmail(true);
+    try {
+      await changeVerificationEmail({
+        currentEmail: searchParams.get('email') || emailValue.trim(),
+        newEmail,
+      });
+      setEmailValue(newEmail);
+      setSearchParams({ email: newEmail }, { replace: true });
+      if (recruiterDraftEmail && recruiterDraftEmail.toLowerCase() === (searchParams.get('email') || '').toLowerCase()) {
+        updateRecruiterEmail(newEmail);
+      }
+      setCode(Array(CODE_LENGTH).fill(''));
+      setSecondsRemaining(RESEND_DELAY);
+      setEditingEmail(false);
+      setResendMessage('A verification code has been sent to the updated email address.');
+    } catch (requestError: unknown) {
+      const message = axios.isAxiosError(requestError)
+        ? requestError.response?.data?.message || 'Unable to update your email. Please try again.'
+        : 'Unable to update your email. Please try again.';
+      setError(message);
+    } finally {
+      setIsUpdatingEmail(false);
+    }
+  };
 
   useEffect(() => {
     if (secondsRemaining <= 0) return;
@@ -196,6 +244,10 @@ function EmailVerificationPage() {
 
       setVerified(true);
 
+      if (recruiterDraftEmail && recruiterDraftEmail.toLowerCase() === emailValue.toLowerCase()) {
+        clearRecruiterDraft();
+      }
+
       setTimeout(() => {
         navigate('/login');
       }, 1200);
@@ -323,11 +375,8 @@ function EmailVerificationPage() {
 
               {editingEmail ? (
                 <form
-                  className="mx-auto mt-4 flex max-w-[360px] items-center gap-2"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    setEditingEmail(false);
-                  }}
+                  className="mx-auto mt-4 grid max-w-[360px] gap-2"
+                  onSubmit={handleChangeEmail}
                 >
                   <input
                     className="min-w-0 flex-1 rounded-lg border border-[#cdd0df] px-3 py-2 text-sm outline-none focus:border-[#5046e5] focus:ring-2 focus:ring-[#5046e5]/10"
@@ -339,13 +388,14 @@ function EmailVerificationPage() {
                     aria-label="Email address"
                     required
                   />
-
-                  <button
-                    type="submit"
-                    className="text-sm font-semibold text-[#4438d6] hover:underline"
-                  >
-                    Save
-                  </button>
+                  <div className="flex justify-center gap-4">
+                    <button type="button" onClick={() => { setEditingEmail(false); setEmailValue(searchParams.get('email') || ''); setError(''); }} className="text-sm font-medium text-[#77798a] hover:underline">
+                      Cancel
+                    </button>
+                    <button type="submit" disabled={isUpdatingEmail} className="text-sm font-semibold text-[#4438d6] hover:underline disabled:opacity-50">
+                      {isUpdatingEmail ? 'Saving...' : 'Save and send code'}
+                    </button>
+                  </div>
                 </form>
               ) : (
                 <p className="mt-3 break-all text-[15px] font-semibold text-[#252632]">
@@ -434,7 +484,7 @@ function EmailVerificationPage() {
 
               <button
                 type="button"
-                onClick={() => setEditingEmail(true)}
+                onClick={() => { setEmailValue(searchParams.get('email') || emailValue); setEditingEmail(true); setError(''); }}
                 className="font-medium text-[#4438d6] hover:underline"
               >
                 Change email address

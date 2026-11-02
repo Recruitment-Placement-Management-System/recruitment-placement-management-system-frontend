@@ -1,9 +1,9 @@
-import { registerCandidate } from '../../../api/auth.api';
-import { useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { registerCandidate } from "../../../api/auth.api";
+import { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-import type { FormEvent, ReactNode } from 'react';
+import type { FormEvent, ReactNode } from "react";
 
 import {
   BarChart3,
@@ -15,152 +15,168 @@ import {
   Phone,
   ShieldCheck,
   UserRound,
-} from 'lucide-react';
+} from "lucide-react";
 
-type AccountType = 'Candidate' | 'Recruiter';
+type AccountType = "Candidate" | "Recruiter";
 
 const insights = [
   {
-    title: 'Predictive Matching',
-    description: 'AI aligns your skills with top enterprise roles.',
+    title: "Predictive Matching",
+    description: "AI aligns your skills with top enterprise roles.",
     active: true,
   },
   {
-    title: 'Lifecycle Tracking',
-    description: 'Real-time visibility into your application status.',
+    title: "Lifecycle Tracking",
+    description: "Real-time visibility into your application status.",
     active: false,
   },
 ];
 
+function BrandLogo() {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="grid h-10 w-10 grid-cols-2 gap-[4px] rounded-[9px] bg-[#5147e8] p-[8px] shadow-[0_4px_12px_rgba(81,71,232,0.3)]" aria-hidden="true">
+        <span className="rounded-[2px] bg-white" />
+        <span className="rounded-[2px] bg-white/75" />
+        <span className="rounded-[2px] bg-white/75" />
+        <span className="rounded-[2px] bg-white" />
+      </div>
+      <div>
+        <p className="text-[23px] font-bold leading-none tracking-[-0.8px] text-white">R&amp;PMS</p>
+        <p className="mt-1.5 text-[9px] font-semibold tracking-[1.5px] text-[#a9b4cb]">ENTERPRISE R&amp;PMS</p>
+      </div>
+    </div>
+  );
+}
+
 function App() {
-  const [accountType, setAccountType] =
-    useState<AccountType>('Candidate');
+  const [accountType, setAccountType] = useState<AccountType>("Candidate");
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
 
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  const [password, setPassword] = useState('');
-  const [confirmation, setConfirmation] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
 
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [didSubmit, setDidSubmit] = useState(false);
 
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const normalizedName = fullName.trim();
+  const normalizedEmail = email.trim();
+  const nameError = !normalizedName
+    ? "Full name is required."
+    : normalizedName.length < 2
+      ? "Enter at least 2 characters."
+      : "";
+  const emailError = !normalizedEmail
+    ? "Email is required."
+    : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+      ? "Enter a valid email address."
+      : "";
+  const phoneDigits = phone.replace(/\D/g, "");
+  const phoneError =
+    phone.trim() &&
+    (!/^[+()\d\s.-]+$/.test(phone.trim()) ||
+      phoneDigits.length < 10 ||
+      phoneDigits.length > 15)
+      ? "Enter a valid phone number"
+      : "";
+  const passwordError = !password
+    ? "Password is required."
+    : password.length < 8
+      ? "Use at least 8 characters."
+      : !/[A-Za-z]/.test(password) || !/\d/.test(password)
+        ? "Include at least one letter and one number."
+        : "";
+  const confirmationError = !confirmation
+    ? "Please confirm your password."
+    : password !== confirmation
+      ? "Passwords do not match."
+      : "";
+  const showError = (value: string) => Boolean(value || didSubmit);
 
-  const handleSubmit = async (
-  event: FormEvent<HTMLFormElement>
-) => {
-  event.preventDefault();
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
-  // Clear previous result before every new submission
-  setError('');
-  setSubmitted(false);
-
-  if (accountType === 'Recruiter') {
-    setError(
-      'Please use the recruiter registration page to create a recruiter account.'
-    );
-    return;
-  }
-
-  if (password !== confirmation) {
-    setError('Passwords do not match.');
-    return;
-  }
-
-  if (!acceptedTerms) {
-    setError(
-      'Please accept the Terms of Service and Privacy Policy.'
-    );
-    return;
-  }
-
-  const formData = new FormData(event.currentTarget);
-
-  const fullName =
-    formData.get('fullName')?.toString().trim() ?? '';
-
-  const email =
-    formData.get('email')?.toString().trim() ?? '';
-
-  const phone =
-    formData.get('phone')?.toString().trim() ?? '';
-
-  try {
-    setIsSubmitting(true);
-
-    const response = await registerCandidate({
-      fullName,
-      email,
-      password,
-      phone: phone || undefined,
-    });
-
-    console.log('Candidate registration response:', response);
-
-
-    
-    
-    // SUCCESS
-    setError('');
-    setSubmitted(true);
-    
-    setPassword('');
-    setConfirmation('');
-    setAcceptedTerms(false);
-    
-    navigate(`/verify-email?email=${encodeURIComponent(email)}`);
-
-  } catch (error: unknown) {
-    // ERROR
+    setDidSubmit(true);
+    setError("");
     setSubmitted(false);
 
-    if (axios.isAxiosError(error)) {
-      const message =
-        error.response?.data?.message ||
-        'Registration failed. Please try again.';
-
-      setError(message);
-    } else {
-      setError('Registration failed. Please try again.');
+    if (accountType === "Recruiter") {
+      setError(
+        "Please use the recruiter registration page to create a recruiter account.",
+      );
+      return;
     }
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+
+    if (
+      nameError ||
+      emailError ||
+      phoneError ||
+      passwordError ||
+      confirmationError ||
+      !acceptedTerms
+    )
+      return;
+
+    try {
+      setIsSubmitting(true);
+
+      await registerCandidate({
+        fullName: normalizedName,
+        email: normalizedEmail,
+        password,
+        phone: phone.trim() || undefined,
+      });
+      // SUCCESS
+      setError("");
+      setSubmitted(true);
+
+      setPassword("");
+      setConfirmation("");
+      setAcceptedTerms(false);
+
+      navigate(`/verify-email?email=${encodeURIComponent(normalizedEmail)}`);
+    } catch (error: unknown) {
+      // ERROR
+      setSubmitted(false);
+
+      if (axios.isAxiosError(error)) {
+        const message =
+          error.response?.data?.message ||
+          "Registration failed. Please try again.";
+
+        setError(message);
+      } else {
+        setError("Registration failed. Please try again.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <main className="min-h-screen bg-white text-[#171923]">
-      <div className="grid min-h-screen lg:grid-cols-[46.1%_53.9%]">
-
+    <main className="register-page min-h-screen bg-[#f8fafc] text-[#172033]">
+      <div className="grid min-h-screen lg:grid-cols-[42%_58%]">
         {/* Left branding panel */}
         <aside className="relative hidden overflow-hidden bg-[#0d1528] px-10 py-10 text-white lg:flex lg:flex-col xl:px-14">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_100%_0%,rgba(77,68,225,0.16),transparent_42%),linear-gradient(140deg,#10172a_10%,#0e1628_58%,#111a38)]" />
 
-          {/* Brand */}
-          <div className="relative flex items-center gap-3">
-            <div className="grid h-8 w-8 grid-cols-2 gap-1 rounded-[7px] bg-[#5147e8] p-[6px] shadow-[0_4px_16px_rgba(81,71,232,0.4)]">
-              <span className="rounded-[2px] bg-white" />
-              <span className="rounded-[2px] bg-white" />
-              <span className="rounded-[2px] bg-white" />
-              <span className="rounded-[2px] bg-white" />
-            </div>
-
-            <span className="text-[23px] font-bold tracking-[-0.8px]">
-              R&amp;PMS
-            </span>
-          </div>
-
-          <p className="relative mt-2 text-[12px] font-medium tracking-[0.7px] text-[#a8adbf]">
-            ENTERPRISE R&amp;PMS
-          </p>
+          <header className="relative">
+            <BrandLogo />
+          </header>
 
           {/* Centered promotional content */}
           <div className="relative my-auto w-full max-w-[525px] py-12">
-            <h2 className="max-w-[420px] text-[25px] font-semibold leading-[1.3] tracking-[-0.5px] text-[#edf0fb]">
+            <h2 className="max-w-[1000px] text-[25px] font-semibold leading-[1.3] tracking-[-0.5px] text-[#edf0fb]">
               Elevate your career trajectory with data-driven insights.
             </h2>
 
@@ -170,15 +186,15 @@ function App() {
                   key={insight.title}
                   className={`relative rounded-lg border px-12 py-4 transition-colors ${
                     insight.active
-                      ? 'border-[#3b4563] bg-[#252e46]'
-                      : 'border-transparent bg-[#121c36]/75 text-[#858ba0]'
+                      ? "border-[#3b4563] bg-[#252e46]"
+                      : "border-transparent bg-[#121c36]/75 text-[#858ba0]"
                   }`}
                 >
                   <span
                     className={`absolute -left-[30px] top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full border ${
                       insight.active
-                        ? 'border-[#554bf1] bg-[#5147e8]'
-                        : 'border-[#2f3a5b] bg-[#18223d]'
+                        ? "border-[#554bf1] bg-[#5147e8]"
+                        : "border-[#2f3a5b] bg-[#18223d]"
                     }`}
                   />
 
@@ -188,9 +204,7 @@ function App() {
 
                   <p
                     className={`text-[14px] font-semibold ${
-                      insight.active
-                        ? 'text-[#e5e8f3]'
-                        : 'text-[#969caf]'
+                      insight.active ? "text-[#e5e8f3]" : "text-[#969caf]"
                     }`}
                   >
                     {insight.title}
@@ -221,65 +235,72 @@ function App() {
         </aside>
 
         {/* Registration panel */}
-        <section className="flex min-h-screen items-center justify-center px-8 py-10 sm:px-12 lg:px-10 xl:px-16">
-          <div className="w-full max-w-[460px]">
+        <section className="flex min-h-screen items-start justify-center px-5 py-8 sm:px-8 lg:px-8 xl:px-12">
+          <div className="w-full max-w-[650px]">
+            <div className="mb-6 lg:hidden">
+              <div className="inline-flex rounded-xl bg-[#0d1528] p-3">
+                <BrandLogo />
+              </div>
+            </div>
 
             {/* Account type selector */}
-            <div className="mx-auto flex w-fit rounded-[9px] border border-[#dedee7] bg-[#f0f1f5] p-1 shadow-[0_1px_2px_rgba(16,24,40,0.04)]">
-             {(['Candidate', 'Recruiter'] as AccountType[]).map(
-  (type) => (
-    <button
-      key={type}
-      type="button"
-      onClick={() => {
-        if (type === 'Recruiter') {
-          navigate('/recruiter/register');
-          return;
-        }
+            <div className="mx-auto mb-6 flex w-fit rounded-lg border border-[#e1e5ee] bg-[#eef0f5] p-1">
+              {(["Candidate", "Recruiter"] as AccountType[]).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => {
+                    if (type === "Recruiter") {
+                      navigate("/recruiter/register", { viewTransition: true });
+                      return;
+                    }
 
-        setAccountType('Candidate');
-        setError('');
-        setSubmitted(false);
-      }}
-      className={`rounded-[6px] px-[17px] py-[7px] text-[14px] font-semibold transition-all ${
-        accountType === type
-          ? 'bg-[#5046e5] text-white shadow-[0_2px_4px_rgba(80,70,229,0.25)]'
-          : 'text-[#525363] hover:text-[#282936]'
-      }`}
-    >
-      {type}
-    </button>
-  )
-)}
+                    setAccountType("Candidate");
+                    setError("");
+                    setSubmitted(false);
+                  }}
+                  className={`rounded-md px-3.5 py-2 text-[12px] font-semibold transition ${
+                    accountType === type
+                      ? "bg-white text-[#42465a] shadow-sm"
+                      : "text-[#697186] hover:text-[#42465a]"
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
             </div>
 
             {/* Heading */}
-            <header className="mt-6">
-              <h1 className="text-[34px] font-bold leading-[1.15] tracking-[-1.1px] text-[#15171b] sm:text-[39px]">
+            <header>
+              <h1 className="text-[29px] font-bold leading-tight tracking-[-1px] text-[#142039] sm:text-[32px]">
                 Create your {accountType.toLowerCase()} account
               </h1>
 
-              <p className="mt-3 max-w-[400px] text-[16px] leading-6 text-[#5e6070]">
-                Create your account to discover jobs and manage your
-                recruitment journey.
+              <p className="mt-2 max-w-[400px] text-[13px] leading-6 text-[#71809b] sm:text-[14px]">
+                Create your account to discover jobs and manage your recruitment
+                journey.
               </p>
             </header>
 
             {/* Form */}
-            <form
-              className="mt-6 space-y-4"
-              onSubmit={handleSubmit}
-            >
+            <form className="mt-6 space-y-4" onSubmit={handleSubmit} noValidate>
               <Field
                 label="Full name"
                 icon={<UserRound size={20} />}
+                errorId="fullName-error"
+                error={showError(fullName) ? nameError : ""}
               >
                 <input
-                  required
-                  minLength={2}
                   name="fullName"
                   type="text"
                   autoComplete="name"
+                  value={fullName}
+                  onChange={(event) => {
+                    setFullName(event.target.value);
+                    setError("");
+                  }}
+                  aria-invalid={Boolean(showError(fullName) && nameError)}
+                  aria-describedby="fullName-error"
                   placeholder="Enter your full name"
                   className="w-full min-w-0 border-0 bg-transparent py-2.5 pl-10 pr-3 text-sm outline-none"
                 />
@@ -289,11 +310,20 @@ function App() {
                 <Field
                   label="Phone number"
                   icon={<Phone size={20} />}
+                  errorId="phone-error"
+                  error={showError(phone) ? phoneError : ""}
                 >
                   <input
                     name="phone"
                     type="tel"
                     autoComplete="tel"
+                    value={phone}
+                    onChange={(event) => {
+                      setPhone(event.target.value);
+                      setError("");
+                    }}
+                    aria-invalid={Boolean(showError(phone) && phoneError)}
+                    aria-describedby="phone-error"
                     placeholder="Enter your phone number"
                     className="w-full min-w-0 border-0 bg-transparent py-2.5 pl-10 pr-3 text-sm outline-none"
                   />
@@ -302,12 +332,20 @@ function App() {
                 <Field
                   label="Email address"
                   icon={<Mail size={20} />}
+                  errorId="email-error"
+                  error={showError(email) ? emailError : ""}
                 >
                   <input
-                    required
                     name="email"
                     type="email"
                     autoComplete="email"
+                    value={email}
+                    onChange={(event) => {
+                      setEmail(event.target.value);
+                      setError("");
+                    }}
+                    aria-invalid={Boolean(showError(email) && emailError)}
+                    aria-describedby="email-error"
                     placeholder="Enter your email address"
                     className="w-full min-w-0 border-0 bg-transparent py-2.5 pl-10 pr-3 text-sm outline-none"
                   />
@@ -317,57 +355,63 @@ function App() {
               <Field
                 label="Password"
                 icon={<LockKeyhole size={20} />}
+                errorId="password-error"
+                error={showError(password) ? passwordError : ""}
                 trailing={
                   <VisibilityButton
                     visible={showPassword}
-                    onClick={() =>
-                      setShowPassword((current) => !current)
-                    }
+                    onClick={() => setShowPassword((current) => !current)}
                   />
                 }
               >
                 <input
-                  required
-                  minLength={8}
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   value={password}
-                  onChange={(event) =>
-                    setPassword(event.target.value)
-                  }
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                    setError("");
+                  }}
+                  aria-invalid={Boolean(showError(password) && passwordError)}
+                  aria-describedby="password-error password-guidance"
                   placeholder="Create a password"
                   className="w-full min-w-0 border-0 bg-transparent py-2.5 pl-10 pr-10 text-sm outline-none"
                 />
               </Field>
 
-              <p className="-mt-2 text-[13px] leading-5 text-[#656777]">
-                Use at least 8 characters with a mix of letters and
-                numbers.
+              <p
+                id="password-guidance"
+                className="-mt-2 text-[13px] leading-5 text-[#656777]"
+              >
+                Use at least 8 characters with a mix of letters and numbers.
               </p>
 
               <Field
                 label="Confirm password"
                 icon={<ShieldCheck size={20} />}
+                errorId="confirmPassword-error"
+                error={showError(confirmation) ? confirmationError : ""}
                 trailing={
                   <VisibilityButton
                     visible={showConfirmation}
-                    onClick={() =>
-                      setShowConfirmation((current) => !current)
-                    }
+                    onClick={() => setShowConfirmation((current) => !current)}
                   />
                 }
               >
                 <input
-                  required
-                  minLength={8}
                   name="confirmPassword"
-                  type={showConfirmation ? 'text' : 'password'}
+                  type={showConfirmation ? "text" : "password"}
                   autoComplete="new-password"
                   value={confirmation}
-                  onChange={(event) =>
-                    setConfirmation(event.target.value)
-                  }
+                  onChange={(event) => {
+                    setConfirmation(event.target.value);
+                    setError("");
+                  }}
+                  aria-invalid={Boolean(
+                    showError(confirmation) && confirmationError,
+                  )}
+                  aria-describedby="confirmPassword-error"
                   placeholder="Re-enter your password"
                   className="w-full min-w-0 border-0 bg-transparent py-2.5 pl-10 pr-10 text-sm outline-none"
                 />
@@ -379,26 +423,25 @@ function App() {
                   className="peer sr-only"
                   type="checkbox"
                   checked={acceptedTerms}
-                  onChange={(event) =>
-                    setAcceptedTerms(event.target.checked)
-                  }
+                  onChange={(event) => {
+                    setAcceptedTerms(event.target.checked);
+                    setError("");
+                  }}
                 />
 
                 <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-[4px] border border-[#cdd0df] bg-white text-white transition peer-checked:border-[#5046e5] peer-checked:bg-[#5046e5] peer-focus-visible:ring-2 peer-focus-visible:ring-[#5046e5]">
-                  {acceptedTerms && (
-                    <Check size={12} strokeWidth={3} />
-                  )}
+                  {acceptedTerms && <Check size={12} strokeWidth={3} />}
                 </span>
 
                 <span>
-                  I agree to the{' '}
+                  I agree to the{" "}
                   <a
                     href="#terms"
                     className="font-medium text-[#4438d6] hover:underline"
                   >
                     Terms of Service
-                  </a>{' '}
-                  and{' '}
+                  </a>{" "}
+                  and{" "}
                   <a
                     href="#privacy"
                     className="font-medium text-[#4438d6] hover:underline"
@@ -408,26 +451,19 @@ function App() {
                   .
                 </span>
               </label>
-
-              {/* Error */}
-              {error && (
-                <p
-                  role="alert"
-                  className="text-sm font-medium text-red-600"
-                >
-                  {error}
-                </p>
-              )}
+              <p role="alert" className="-mt-2 min-h-4 text-xs leading-4 text-red-600">
+                {error || (didSubmit && !acceptedTerms
+                  ? 'Please accept the Terms of Service and Privacy Policy.'
+                  : '\u00a0')}
+              </p>
 
               {/* Submit */}
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="mt-3 h-11 w-full rounded-[7px] bg-[#5046e5] text-[14px] font-semibold text-white shadow-[0_3px_7px_rgba(80,70,229,0.25)] transition hover:bg-[#443bd0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5046e5] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                className="h-11 w-full rounded-[7px] bg-[#5046e5] text-[14px] font-semibold text-white shadow-[0_3px_7px_rgba(80,70,229,0.25)] transition hover:bg-[#443bd0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5046e5] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting
-                  ? 'Creating account...'
-                  : 'Create account'}
+                {isSubmitting ? "Creating account..." : "Create account"}
               </button>
 
               {/* Success */}
@@ -436,20 +472,19 @@ function App() {
                   role="status"
                   className="text-center text-sm font-medium text-[#3a8a5b]"
                 >
-                  Registration successful. Please verify your
-                  email.
+                  Registration successful. Please verify your email.
                 </p>
               )}
             </form>
 
             <p className="mt-5 text-center text-[15px] text-[#5e6070]">
-              Already have an account?{' '}
-              <button
-                type="button"
-                className="font-semibold text-[#4438d6] hover:underline"
+              Already have an account?{" "}
+              <a
+                href="/login"
+                className="font-semibold text-[#5046e5] hover:underline"
               >
                 Sign in
-              </button>
+              </a>
             </p>
           </div>
         </section>
@@ -461,14 +496,18 @@ function App() {
 type FieldProps = {
   label: string;
   icon: ReactNode;
+  errorId: string;
   trailing?: ReactNode;
+  error?: string;
   children: ReactNode;
 };
 
 function Field({
   label,
   icon,
+  errorId,
   trailing,
+  error,
   children,
 }: FieldProps) {
   return (
@@ -486,6 +525,9 @@ function Field({
 
         {trailing}
       </span>
+      <span id={errorId} className="mt-1.5 block min-h-4 text-xs leading-4 text-red-600">
+        {error || '\u00a0'}
+      </span>
     </label>
   );
 }
@@ -495,22 +537,15 @@ type VisibilityButtonProps = {
   onClick: () => void;
 };
 
-function VisibilityButton({
-  visible,
-  onClick,
-}: VisibilityButtonProps) {
+function VisibilityButton({ visible, onClick }: VisibilityButtonProps) {
   return (
     <button
       type="button"
-      aria-label={visible ? 'Hide password' : 'Show password'}
+      aria-label={visible ? "Hide password" : "Show password"}
       onClick={onClick}
       className="absolute right-3 flex items-center text-[#7e8092] hover:text-[#5046e5]"
     >
-      {visible ? (
-        <EyeOff size={20} />
-      ) : (
-        <Eye size={20} />
-      )}
+      {visible ? <EyeOff size={20} /> : <Eye size={20} />}
     </button>
   );
 }

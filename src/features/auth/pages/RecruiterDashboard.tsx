@@ -3,48 +3,29 @@ import { useNavigate } from 'react-router-dom';
 
 import { logout } from '../../../api/auth.api';
 import useAuthStore from '../../../store/auth.store';
+import { RecruiterSidebar } from '../../../components/sidebars/RecruiterSidebar';
+import { Navbar } from '../../../components/common/Navbar';
+import { Footer } from '../../../components/common/Footer';
 
 import {
   Activity,
   ArrowRight,
   Bell,
   BriefcaseBusiness,
-  Building2,
   CalendarDays,
-  CheckSquare,
-  ChevronDown,
-  ClipboardList,
   FileText,
   Filter,
-  LayoutDashboard,
   LogOut,
   MessageSquare,
   Plus,
   Search,
   Settings,
-  ShieldCheck,
   Sparkles,
   Users,
   Bot,
   TrendingUp,
   UserRound,
-  ChartNoAxesCombined,
 } from 'lucide-react';
-
-type NavigationItem = {
-  label: string;
-  icon: React.ComponentType<{
-    size?: number;
-    strokeWidth?: number;
-  }>;
-  active?: boolean;
-  ai?: boolean;
-};
-
-type NavigationGroup = {
-  section: string;
-  items: NavigationItem[];
-};
 
 const stats = [
   {
@@ -202,119 +183,6 @@ const applications = [
   },
 ];
 
-const navigation: NavigationGroup[] = [
-  {
-    section: 'MAIN',
-    items: [
-      {
-        label: 'Dashboard',
-        icon: LayoutDashboard,
-        active: true,
-      },
-      {
-        label: 'Manage Jobs',
-        icon: BriefcaseBusiness,
-      },
-      {
-        label: 'Applications',
-        icon: ClipboardList,
-      },
-      {
-        label: 'Candidates',
-        icon: Users,
-      },
-      {
-        label: 'Interviews',
-        icon: CalendarDays,
-      },
-      {
-        label: 'Offers',
-        icon: ShieldCheck,
-      },
-      {
-        label: 'Placements',
-        icon: CheckSquare,
-      },
-    ],
-  },
-  {
-    section: 'AI & INSIGHTS',
-    items: [
-      {
-        label: 'AI Matching',
-        icon: Users,
-        ai: true,
-      },
-      {
-        label: 'AI Assistant',
-        icon: Bot,
-        ai: true,
-      },
-      {
-        label: 'Analytics',
-        icon: ChartNoAxesCombined,
-      },
-    ],
-  },
-  {
-    section: 'COMMUNICATION',
-    items: [
-      {
-        label: 'Chats',
-        icon: MessageSquare,
-      },
-      {
-        label: 'Notifications',
-        icon: Bell,
-      },
-    ],
-  },
-  {
-    section: 'COMPANY',
-    items: [
-      {
-        label: 'Company',
-        icon: Building2,
-      },
-      {
-        label: 'Profile',
-        icon: UserRound,
-      },
-    ],
-  },
-];
-
-function Brand() {
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className="grid h-9 w-9 place-items-center rounded-xl bg-[#5147E8] text-white shadow-sm">
-        <span className="grid grid-cols-2 gap-[3px]">
-          <span className="h-[7px] w-[7px] rounded-[1px] bg-white" />
-          <span className="h-[7px] w-[7px] rounded-[1px] bg-white" />
-          <span className="h-[7px] w-[7px] rounded-[1px] bg-white" />
-          <span className="h-[7px] w-[7px] rounded-[1px] bg-white" />
-        </span>
-      </div>
-
-      <div>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[17px] font-bold tracking-tight text-[#102039]">
-            R&PMS
-          </span>
-
-          <span className="rounded bg-[#BFE9E5] px-1.5 py-0.5 text-[9px] font-bold text-[#006B63]">
-            ENT
-          </span>
-        </div>
-
-        <p className="text-[9px] font-semibold tracking-wide text-[#687782]">
-          R&PMS
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function SectionHeading({
   title,
   action,
@@ -345,127 +213,47 @@ function RecruiterDashboard() {
   const logoutUser = useAuthStore(
     (state) => state.logout
   );
+  const userEmail = useAuthStore((state) => state.user?.email);
 
   const [showProfileMenu, setShowProfileMenu] =
     useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
       await logout();
-
-      logoutUser();
-
-      navigate('/login', {
-        replace: true,
-      });
     } catch (error) {
       console.error('Logout failed:', error);
+    } finally {
+      logoutUser();
+      navigate('/login', { replace: true });
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F7F8FF] text-[#102039]">
-      <div className="flex min-h-screen">
+      <RecruiterSidebar
+        activePage="Dashboard"
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        profile={{
+          name: userEmail ?? 'Recruiter',
+          description: 'Recruiter account',
+          initials: userEmail?.slice(0, 2).toUpperCase() ?? 'RE',
+        }}
+      />
 
-        {/* Sidebar */}
-
-        <aside className="hidden w-[245px] shrink-0 flex-col border-r border-[#E8ECF5] bg-white lg:flex">
-          <div className="border-b border-[#EEF0F5] px-5 py-5">
-            <Brand />
-          </div>
-
-          <nav className="flex-1 overflow-y-auto px-3 py-4">
-            {navigation.map((group) => (
-              <div
-                key={group.section}
-                className="mb-5"
-              >
-                <p className="mb-2 px-2 text-[10px] font-bold tracking-[0.7px] text-[#84909A]">
-                  {group.section}
-                </p>
-
-                <div className="space-y-1">
-                  {group.items.map((item) => {
-                    const Icon = item.icon;
-
-                    return (
-                      <button
-                        key={item.label}
-                        className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] transition ${
-                          item.active
-                            ? 'bg-[#BFE9E5] font-semibold text-[#006B63]'
-                            : 'text-[#46545A] hover:bg-[#F0F8F7] hover:text-[#006B63]'
-                        }`}
-                      >
-                        <Icon
-                          size={17}
-                          strokeWidth={1.8}
-                        />
-
-                        <span>{item.label}</span>
-
-                        {item.ai &&
-                          item.label ===
-                            'AI Matching' && (
-                            <span className="ml-auto rounded-full bg-[#F1E5FF] px-1.5 py-0.5 text-[9px] font-bold text-[#8B27CB]">
-                              AI
-                            </span>
-                          )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </nav>
-
-          <div className="border-t border-[#E8ECF5] p-3">
-            <button className="mb-3 flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-[#46545A] hover:bg-[#F0F8F7]">
-              <Settings size={17} />
-              Settings
-            </button>
-
-            <div className="flex items-center gap-2 rounded-lg bg-[#F0F5FF] p-2">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#D8E9F7] text-[11px] font-bold text-[#006B63]">
-                SJ
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[11px] font-bold">
-                  Sarah Johnson
-                </p>
-
-                <p className="truncate text-[10px] text-[#687782]">
-                  Recruiter · TechNova
-                </p>
-              </div>
-
-              <ChevronDown
-                size={15}
-                className="text-[#687782]"
-              />
-            </div>
-          </div>
-        </aside>
-
-        {/* Main area */}
-
-        <main className="min-w-0 flex-1">
+      <main className="min-h-screen min-w-0 lg:ml-[250px]">
 
           {/* Top bar */}
 
-          <header className="sticky top-0 z-10 flex h-[60px] items-center gap-4 border-b border-[#E8ECF5] bg-white/95 px-4 backdrop-blur sm:px-6">
-            <div className="min-w-0 shrink-0">
-              <p className="text-[10px] text-[#7A858F]">
-                Recruitment Hub / Overview
-              </p>
-
-              <p className="text-[13px] font-bold">
-                Recruiter Dashboard
-              </p>
-            </div>
-
-            <div className="relative mx-auto hidden max-w-[470px] flex-1 md:block">
+          <Navbar
+            title="Recruiter Dashboard"
+            context="Recruitment Hub / Overview"
+            onMenuClick={() => setSidebarOpen(true)}
+            accentClass="hover:bg-[#EDF8F6] hover:text-[#006B63]"
+          >
+            <div className="relative mx-auto hidden max-w-[470px] min-w-0 flex-1 md:block">
               <Search
                 size={16}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7A858F]"
@@ -513,7 +301,7 @@ function RecruiterDashboard() {
                   }
                   className="grid h-8 w-8 place-items-center rounded-full border border-[#DCE6ED] bg-[#D8E9F7] text-[10px] font-bold text-[#006B63] transition hover:border-[#006B63] hover:ring-2 hover:ring-[#006B63]/10"
                 >
-                  SJ
+                  {userEmail?.slice(0, 2).toUpperCase() ?? 'RE'}
                 </button>
 
                 {showProfileMenu && (
@@ -555,7 +343,7 @@ function RecruiterDashboard() {
                 )}
               </div>
             </div>
-          </header>
+          </Navbar>
 
           <div className="space-y-5 p-4 sm:p-6">
 
@@ -931,23 +719,9 @@ function RecruiterDashboard() {
               </article>
             </section>
 
-            <footer className="flex flex-wrap items-center justify-between gap-2 py-1 text-[10px] text-[#84909A]">
-              <span>
-                © 2026 R&PMS · Enterprise Recruitment Platform
-              </span>
-
-              <span className="flex items-center gap-1">
-                <Activity
-                  size={12}
-                  className="text-[#006B63]"
-                />
-
-                All systems operational
-              </span>
-            </footer>
+            <Footer role="Recruiter Portal" status={<><Activity size={12} className="text-[#006B63]" /> All systems operational</>} />
           </div>
         </main>
-      </div>
     </div>
   );
 }

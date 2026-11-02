@@ -2,10 +2,42 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Eye, EyeOff, LockKeyhole, ArrowRight } from 'lucide-react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { login } from '../../../api/auth.api';
 import useAuthStore from '../../../store/auth.store';
+
+function getLoginErrorMessage(error: unknown): string {
+  if (!axios.isAxiosError(error)) {
+    return 'Login failed. Please try again.';
+  }
+
+  if (!error.response) {
+    return 'Unable to reach the server. Check your connection and try again.';
+  }
+
+  const data: unknown = error.response.data;
+  if (data && typeof data === 'object' && 'message' in data && typeof data.message === 'string') {
+    return data.message;
+  }
+
+  return error.response.status === 401
+    ? 'Invalid email or password.'
+    : 'Login failed. Please try again.';
+}
+
+function isEmailNotVerified(error: unknown): boolean {
+  if (!axios.isAxiosError(error)) return false;
+  const data: unknown = error.response?.data;
+  if (!data || typeof data !== 'object' || !('error' in data)) return false;
+  const detail = data.error;
+  return Boolean(
+    detail &&
+      typeof detail === 'object' &&
+      'code' in detail &&
+      detail.code === 'EMAIL_NOT_VERIFIED',
+  );
+}
 
 const lifecycle = [
   { title: 'Candidate Discovery', detail: 'Sourcing and talent pooling' },
@@ -47,46 +79,54 @@ function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [showVerificationLink, setShowVerificationLink] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [didSubmit, setDidSubmit] = useState(false);
+  const normalizedEmail = email.trim();
+  const emailError = !normalizedEmail
+    ? 'Email is required.'
+    : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+      ? 'Enter a valid email address.'
+      : '';
+  const passwordError = password ? '' : 'Password is required.';
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     setMessage('');
+    setShowVerificationLink(false);
+    setDidSubmit(true);
+
+    if (!normalizedEmail || emailError || !password) return;
+
     setIsLoggingIn(true);
 
     try {
       const response = await login({
-        email,
+        email: normalizedEmail,
         password,
       });
 
-      console.log('Login response:', response);
-
-      loginUser(response.accessToken,response.user)
-
-      setMessage(response.message);
+      if (response.user.roles.includes('admin')) {
+        setMessage('Administrators must sign in through the admin login page.');
+        return;
+      }
 
       const role = response.user.roles[0];
+      if (role !== 'candidate' && role !== 'recruiter') {
+        setMessage('This account cannot sign in here.');
+        return;
+      }
 
-      if (role === 'candidate') {
-  navigate('/candidate/dashboard');
-} else if (role === 'recruiter') {
-  navigate('/recruiter/dashboard');
-} else if (role === 'admin') {
-  navigate('/admin/dashboard');
-}
+      loginUser(response.accessToken, response.user);
+      navigate(role === 'candidate' ? '/candidate/dashboard' : '/recruiter/dashboard');
 
-      // Zustand authentication state will be added here next.
     } catch (error: unknown) {
-      if (axios.isAxiosError(error)) {
-        const message =
-          error.response?.data?.message ||
-          'Login failed. Please try again.';
-
-        setMessage(message);
+      if (isEmailNotVerified(error)) {
+        setMessage('Your email address has not been verified yet.');
+        setShowVerificationLink(true);
       } else {
-        setMessage('Login failed. Please try again.');
+        setMessage(getLoginErrorMessage(error));
       }
     } finally {
       setIsLoggingIn(false);
@@ -222,7 +262,7 @@ function App() {
               </p>
             </header>
 
-            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-5">
               <label className="block">
                 <span className="mb-2 block text-[12px] font-semibold text-[#26344c]">
                   Email address
@@ -237,10 +277,14 @@ function App() {
                   onChange={(event) => {
                     setEmail(event.target.value);
                     setMessage('');
+                    setShowVerificationLink(false);
                   }}
                   placeholder="name@company.com"
                   className="h-[47px] w-full rounded-lg border border-[#dce2ec] bg-white px-4 text-[14px] text-[#25334a] shadow-[0_1px_2px_rgba(16,24,40,0.03)] outline-none transition placeholder:text-[#9cafc8] hover:border-[#c7cfe0] focus:border-[#5046e5] focus:ring-4 focus:ring-[#5046e5]/[0.08]"
+                  aria-invalid={Boolean((email || didSubmit) && emailError)}
+                  aria-describedby="email-tip"
                 />
+                {(email || didSubmit) && emailError && <span id="email-tip" className="mt-1 block text-[11px] text-[#b42318]">{emailError}</span>}
               </label>
 
               <label className="block">
@@ -264,7 +308,6 @@ function App() {
 
                   <input
                     required
-                    minLength={8}
                     type={showPassword ? 'text' : 'password'}
                     name="password"
                     autoComplete="current-password"
@@ -272,9 +315,12 @@ function App() {
                     onChange={(event) => {
                       setPassword(event.target.value);
                       setMessage('');
+                      setShowVerificationLink(false);
                     }}
                     placeholder="Enter your password"
                     className="h-[47px] w-full rounded-lg border border-[#dce2ec] bg-white px-4 text-[14px] text-[#25334a] shadow-[0_1px_2px_rgba(16,24,40,0.03)] outline-none transition placeholder:text-[#9cafc8] hover:border-[#c7cfe0] focus:border-[#5046e5] focus:ring-4 focus:ring-[#5046e5]/[0.08] sm:pl-10 sm:pr-11"
+                    aria-invalid={Boolean((password || didSubmit) && passwordError)}
+                    aria-describedby="password-tip"
                   />
 
                   <button
@@ -293,6 +339,7 @@ function App() {
                     )}
                   </button>
                 </span>
+                {(password || didSubmit) && passwordError && <span id="password-tip" className="mt-1 block text-[11px] text-[#b42318]">{passwordError}</span>}
               </label>
 
               <button
@@ -312,13 +359,21 @@ function App() {
             </form>
 
             {message && (
-              <p
-                role="status"
+              <div
+                role="alert"
                 aria-live="polite"
-                className="mt-4 rounded-lg border border-[#e2e1ff] bg-[#f3f2ff] px-3 py-2.5 text-center text-[12px] leading-5 text-[#5046e5]"
+                className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-center text-[12px] leading-5 text-red-700"
               >
-                {message}
-              </p>
+                <p>{message}</p>
+                {showVerificationLink && (
+                  <Link
+                    to={`/verify-email?email=${encodeURIComponent(normalizedEmail)}`}
+                    className="mt-1 inline-block font-semibold text-[#4438d6] underline underline-offset-2 hover:text-[#3027b8]"
+                  >
+                    Verify your email
+                  </Link>
+                )}
+              </div>
             )}
 
             <div className="my-7 flex items-center gap-3">

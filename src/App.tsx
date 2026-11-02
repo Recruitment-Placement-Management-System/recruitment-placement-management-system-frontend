@@ -13,6 +13,7 @@ import AdminLogin from "./features/admin/pages/AdminLogin";
 import AdminDashboard from "./features/admin/pages/AdminDashboard";
 
 import ProtectedRoute from "./features/auth/components/ProctectedRoute";
+import GuestRoute from "./features/auth/components/GuestRoute";
 
 import { useEffect } from "react";
 import { refreshAccessToken } from "./api/refresh.api";
@@ -24,10 +25,13 @@ function App(){
   const setInitializing = useAuthStore((state)=>state.setInitializing);
 
    useEffect(() => {
+    let cancelled = false;
+
     const restoreSession = async () => {
       try {
         const response = await refreshAccessToken();
 
+        if (cancelled) return;
         login(
           response.accessToken,
           response.user
@@ -36,20 +40,23 @@ function App(){
         // No valid refresh session.
         // User remains logged out.
       } finally {
-        setInitializing(false);
+        if (!cancelled) setInitializing(false);
       }
     };
 
     restoreSession();
+
+    return () => { cancelled = true; };
   }, [login, setInitializing]);
   return(
     <Routes>
 
       {/*authentication*/}
 
-      <Route path="/login" element={<Login/>} />
-
-      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route element={<GuestRoute />}>
+        <Route path="/login" element={<Login/>} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+      </Route>
 
       <Route path="/candidate/register" element={<CandidateRegistration/>} />
 
