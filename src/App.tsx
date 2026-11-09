@@ -1,11 +1,11 @@
 import { Navigate,Route,Routes } from "react-router-dom";
 
-import CandidateDashboard from "./features/auth/pages/CandidateDashboard";
+import CandidateDashboard from "./features/candidate/pages/CandidateDashboard";
 import CandidateRegistration from './features/auth/pages/CandidateRegistration';
 import EmailVerification from './features/auth/pages/EmailVerification';
 import ForgotPassword from './features/auth/pages/ForgotPassword';
 import Login from './features/auth/pages/Login';
-import RecruiterDashboard from './features/auth/pages/RecruiterDashboard';
+import RecruiterDashboard from './features/recruiter/pages/RecruiterDashboard';
 import RecruiterRegistration from './features/auth/pages/RecruiterRegistration';
 import ResetPassword from './features/auth/pages/ResetPassword';
 
@@ -119,3 +119,4 @@ function App(){
 }
 
 export default App;
+

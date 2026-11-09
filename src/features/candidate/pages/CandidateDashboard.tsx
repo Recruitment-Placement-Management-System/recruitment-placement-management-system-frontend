@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 import { logout } from '../../../api/auth.api';
 import useAuthStore from '../../../store/auth.store';
-import { CandidateSidebar } from '../../../components/sidebars/CandidateSidebar';
+import { CandidateSidebar } from '../components/CandidateSidebar';
 import { Navbar } from '../../../components/common/Navbar';
 import { Footer } from '../../../components/common/Footer';
 
@@ -754,3 +754,4 @@ function CandidateDashboard() {
 }
 
 export default CandidateDashboard;
+
