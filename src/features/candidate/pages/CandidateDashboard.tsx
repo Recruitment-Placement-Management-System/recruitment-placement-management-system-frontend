@@ -184,6 +184,14 @@ function CandidateDashboard() {
       navigate('/candidate/resume');
       return;
     }
+    if (page === 'Find Jobs') {
+      navigate('/candidate/jobs');
+      return;
+    }
+    if (page === 'Saved Jobs') {
+      navigate('/candidate/jobs/saved');
+      return;
+    }
     setActivePage(page);
 
     if (page !== 'Dashboard') {

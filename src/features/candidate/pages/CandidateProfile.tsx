@@ -496,6 +496,8 @@ export default function CandidateProfilePage() {
     setShowProfileMenu(false);
     if (page === "Dashboard") navigate("/candidate/dashboard");
     else if (page === "Resume") navigate("/candidate/resume");
+    else if (page === "Find Jobs") navigate("/candidate/jobs");
+    else if (page === "Saved Jobs") navigate("/candidate/jobs/saved");
     else if (page === "My Profile") window.scrollTo({ top: 0, behavior: "smooth" });
     else {
       setNotice(`${page} page navigation will be connected when the route is implemented.`);

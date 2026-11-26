@@ -1,19 +1,20 @@
-import { Navigate,Route,Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 
 import CandidateDashboard from "./features/candidate/pages/CandidateDashboard";
 import CandidateProfile from "./features/candidate/pages/CandidateProfile";
 import CandidateResume from "./features/candidate/pages/CandidateResume";
-import CandidateRegistration from './features/auth/pages/CandidateRegistration';
-import EmailVerification from './features/auth/pages/EmailVerification';
-import ForgotPassword from './features/auth/pages/ForgotPassword';
-import Login from './features/auth/pages/Login';
-import RecruiterDashboard from './features/recruiter/pages/RecruiterDashboard';
-import RecruiterProfile from './features/recruiter/pages/RecruiterProfile';
-import RecruiterCompany from './features/recruiter/pages/RecruiterCompany';
-import RecruiterVerification from './features/recruiter/pages/RecruiterVerification';
-import RecruiterJobs from './features/recruiter/pages/RecruiterJobs';
-import RecruiterRegistration from './features/auth/pages/RecruiterRegistration';
-import ResetPassword from './features/auth/pages/ResetPassword';
+import CandidateJobs from "./features/candidate/pages/CandidateJobs";
+import CandidateRegistration from "./features/auth/pages/CandidateRegistration";
+import EmailVerification from "./features/auth/pages/EmailVerification";
+import ForgotPassword from "./features/auth/pages/ForgotPassword";
+import Login from "./features/auth/pages/Login";
+import RecruiterDashboard from "./features/recruiter/pages/RecruiterDashboard";
+import RecruiterProfile from "./features/recruiter/pages/RecruiterProfile";
+import RecruiterCompany from "./features/recruiter/pages/RecruiterCompany";
+import RecruiterVerification from "./features/recruiter/pages/RecruiterVerification";
+import RecruiterJobs from "./features/recruiter/pages/RecruiterJobs";
+import RecruiterRegistration from "./features/auth/pages/RecruiterRegistration";
+import ResetPassword from "./features/auth/pages/ResetPassword";
 
 import AdminLogin from "./features/admin/pages/AdminLogin";
 import AdminDashboard from "./features/admin/pages/AdminDashboard";
@@ -25,12 +26,11 @@ import { useEffect } from "react";
 import { refreshAccessToken } from "./api/refresh.api";
 import useAuthStore from "./store/auth.store";
 
-function App(){
+function App() {
+  const login = useAuthStore((state) => state.login);
+  const setInitializing = useAuthStore((state) => state.setInitializing);
 
-  const login = useAuthStore((state)=>state.login);
-  const setInitializing = useAuthStore((state)=>state.setInitializing);
-
-   useEffect(() => {
+  useEffect(() => {
     let cancelled = false;
 
     const restoreSession = async () => {
@@ -38,10 +38,7 @@ function App(){
         const response = await refreshAccessToken();
 
         if (cancelled) return;
-        login(
-          response.accessToken,
-          response.user
-        );
+        login(response.accessToken, response.user);
       } catch {
         // No valid refresh session.
         // User remains logged out.
@@ -52,85 +49,71 @@ function App(){
 
     restoreSession();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [login, setInitializing]);
-  return(
+  return (
     <Routes>
-
       {/*authentication*/}
 
       <Route element={<GuestRoute />}>
-        <Route path="/login" element={<Login/>} />
+        <Route path="/login" element={<Login />} />
         <Route path="/admin/login" element={<AdminLogin />} />
       </Route>
 
-      <Route path="/candidate/register" element={<CandidateRegistration/>} />
+      <Route path="/candidate/register" element={<CandidateRegistration />} />
 
-      <Route
-        path="/recruiter/register"
-        element={<RecruiterRegistration />}
-      />
+      <Route path="/recruiter/register" element={<RecruiterRegistration />} />
 
-      <Route
-        path="/verify-email"
-        element={<EmailVerification />}
-      />
+      <Route path="/verify-email" element={<EmailVerification />} />
 
-      <Route
-        path="/forgot-password"
-        element={<ForgotPassword />}
-      />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
 
-      <Route
-        path="/reset-password"
-        element={<ResetPassword />}
-      />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Candidate */}
-      <Route element={<ProtectedRoute allowedRoles={['candidate']}/>}>
-      <Route
-        path="/candidate/dashboard"
-        element={<CandidateDashboard />}
-      />
-      <Route path="/candidate/profile" element={<CandidateProfile />} />
-      <Route path="/candidate/profile/*" element={<CandidateProfile />} />
-      <Route path="/candidate/resume" element={<CandidateResume />} />
+      <Route element={<ProtectedRoute allowedRoles={["candidate"]} />}>
+        <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
+        <Route path="/candidate/profile" element={<CandidateProfile />} />
+        <Route path="/candidate/profile/*" element={<CandidateProfile />} />
+        <Route path="/candidate/resume" element={<CandidateResume />} />
+        <Route path="/candidate/jobs" element={<CandidateJobs />} />
+      <Route path="/candidate/jobs/saved" element={<CandidateJobs />} />
+        <Route path="/candidate/jobs/:jobId" element={<CandidateJobs />} />
       </Route>
 
       {/* Recruiter */}
-      <Route element={<ProtectedRoute allowedRoles={['recruiter']} />}>
-  <Route
-    path="/recruiter/dashboard"
-    element={<RecruiterDashboard />}
-  />
-      <Route path="/recruiter/profile" element={<RecruiterProfile />} />
-      <Route path="/recruiter/jobs" element={<RecruiterJobs />} />
-      <Route path="/recruiter/company" element={<RecruiterCompany />} />
-      <Route path="/recruiter/verification" element={<RecruiterVerification />} />
-      <Route path="/recruiter/verification/history" element={<RecruiterVerification historyOnly />} />
-</Route>
+      <Route element={<ProtectedRoute allowedRoles={["recruiter"]} />}>
+        <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
+        <Route path="/recruiter/profile" element={<RecruiterProfile />} />
+        <Route path="/recruiter/jobs" element={<RecruiterJobs />} />
+        <Route path="/recruiter/company" element={<RecruiterCompany />} />
+        <Route
+          path="/recruiter/verification"
+          element={<RecruiterVerification />}
+        />
+        <Route
+          path="/recruiter/verification/history"
+          element={<RecruiterVerification historyOnly />}
+        />
+      </Route>
 
-<Route element={<ProtectedRoute allowedRoles={['admin']} redirectTo="/admin/login"/>}>
-  <Route
-    path="/admin/dashboard"
-    element={<AdminDashboard />}
-  />
-</Route>
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={["admin"]} redirectTo="/admin/login" />
+        }
+      >
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      </Route>
 
       {/* Default */}
-      <Route
-        path="/"
-        element={<Navigate to="/login" replace />}
-      />
+      <Route path="/" element={<Navigate to="/login" replace />} />
 
       {/* Unknown route */}
-      <Route
-        path="*"
-        element={<Navigate to="/login" replace />}
-      />
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
-  )
+  );
 }
 
 export default App;
-
