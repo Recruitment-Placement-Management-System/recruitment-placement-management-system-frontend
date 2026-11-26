@@ -3,13 +3,15 @@ import { Sidebar, type SidebarGroup, type SidebarProps } from '../../../componen
 
 const groups: SidebarGroup[] = [
   { label: 'MAIN', items: [
-    { label: 'Dashboard', icon: LayoutDashboard }, { label: 'Manage Jobs', icon: BriefcaseBusiness },
+    { label: 'Dashboard', icon: LayoutDashboard }, { label: 'Profile', icon: UserRound }, { label: 'Manage Jobs', icon: BriefcaseBusiness },
     { label: 'Applications', icon: ClipboardList }, { label: 'Candidates', icon: Users },
     { label: 'Interviews', icon: CalendarDays }, { label: 'Offers', icon: ShieldCheck }, { label: 'Placements', icon: CheckSquare },
   ] },
   { label: 'AI & INSIGHTS', items: [{ label: 'AI Matching', icon: Users, badge: 'AI' }, { label: 'AI Assistant', icon: Bot }, { label: 'Analytics', icon: ChartNoAxesCombined }] },
   { label: 'COMMUNICATION', items: [{ label: 'Chats', icon: MessageSquare }, { label: 'Notifications', icon: Bell }] },
-  { label: 'COMPANY', items: [{ label: 'Company', icon: Building2 }, { label: 'Profile', icon: UserRound }] },
+  { label: 'COMPANY', items: [
+    { label: 'Company', icon: Building2 },
+  ] },
   { label: 'SETTINGS', items: [{ label: 'Settings', icon: Settings }  ] },
 ];
 
@@ -21,5 +23,5 @@ const theme = {
 };
 
 type Props = Omit<SidebarProps, 'roleLabel' | 'groups' | 'theme'>;
-export function RecruiterSidebar(props: Props) { return <Sidebar {...props} roleLabel="RECRUITER PORTAL" groups={groups} theme={theme} />; }
+export function RecruiterSidebar(props: Props) { return <Sidebar {...props} roleLabel="RECRUITER PORTAL" groups={groups} theme={theme} scrollStorageKey="recruiter-sidebar-scroll" />; }
  

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { ChevronDown, LogOut, X, type LucideIcon } from 'lucide-react';
 
 export type SidebarItem = { label: string; icon: LucideIcon; badge?: string; dot?: boolean };
@@ -32,10 +32,27 @@ export type SidebarProps = {
   onProfileClick?: () => void;
   onLogout?: () => void;
   profileAccessory?: ReactNode;
+  scrollStorageKey?: string;
   theme: SidebarTheme;
 };
 
-export function Sidebar({ roleLabel, groups, activePage, onNavigate, open, onClose, profile, onProfileClick, onLogout, profileAccessory, theme }: SidebarProps) {
+export function Sidebar({ roleLabel, groups, activePage, onNavigate, open, onClose, profile, onProfileClick, onLogout, profileAccessory, scrollStorageKey, theme }: SidebarProps) {
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!scrollStorageKey || !navRef.current) return;
+    try {
+      const saved = sessionStorage.getItem(scrollStorageKey);
+      if (saved !== null) navRef.current.scrollTop = Number(saved) || 0;
+    } catch {
+      // Storage may be unavailable in restricted browser contexts.
+    }
+  }, [scrollStorageKey]);
+
+  const persistScroll = () => {
+    if (!scrollStorageKey || !navRef.current) return;
+    try { sessionStorage.setItem(scrollStorageKey, String(navRef.current.scrollTop)); }
+    catch { /* Keep navigation functional when storage is unavailable. */ }
+  };
   return (
     <>
       {open && <button type="button" aria-label="Close sidebar overlay" onClick={onClose} className="fixed inset-0 z-40 bg-[#0d1528]/40 lg:hidden" />}
@@ -54,14 +71,14 @@ export function Sidebar({ roleLabel, groups, activePage, onNavigate, open, onClo
           <button type="button" onClick={onClose} aria-label="Close navigation" className="rounded-lg p-2 text-[#7c879e] hover:bg-black/5 lg:hidden"><X size={19} /></button>
         </div>
 
-        <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 py-5" aria-label={`${roleLabel} navigation`}>
+        <nav ref={navRef} onScroll={persistScroll} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3.5 py-5" aria-label={`${roleLabel} navigation`}>
           {groups.map((group, groupIndex) => (
             <div key={group.label ?? `group-${groupIndex}`} className={groupIndex ? `mt-5 border-t pt-5 ${theme.divider}` : ''}>
               {group.label && <p className={`mb-2 px-3 text-[10px] font-bold tracking-[0.8px] ${theme.section}`}>{group.label}</p>}
               <div className="space-y-1">
                 {group.items.map(({ label, icon: Icon, badge, dot }) => {
                   const active = activePage === label;
-                  return <button key={label} type="button" onClick={() => { onNavigate?.(label); onClose(); }} aria-current={active ? 'page' : undefined} className={`group flex min-h-11 w-full items-center gap-3 rounded-lg px-3.5 py-3 text-left text-[13px] font-semibold transition ${active ? theme.active : theme.inactive}`}>
+                  return <button key={label} type="button" onClick={() => { persistScroll(); onNavigate?.(label); onClose(); }} aria-current={active ? 'page' : undefined} className={`group flex min-h-11 w-full items-center gap-3 rounded-lg px-3.5 py-3 text-left text-[13px] font-semibold transition ${active ? theme.active : theme.inactive}`}>
                     <Icon size={19} strokeWidth={active ? 2.2 : 1.8} className={active ? theme.activeIcon : theme.inactiveIcon} />
                     <span className="min-w-0 flex-1 truncate">{label}</span>
                     {badge && <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${theme.badge}`}>{badge}</span>}

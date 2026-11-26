@@ -218,6 +218,12 @@ function RecruiterDashboard() {
   const [showProfileMenu, setShowProfileMenu] =
     useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigateTo = (page: string) => {
+    if (page === 'Profile') navigate('/recruiter/profile');
+    else if (page === 'Company') navigate('/recruiter/company');
+    else if (page === 'Verification') navigate('/recruiter/verification');
+    else if (page === 'Verification History') navigate('/recruiter/verification/history');
+  };
 
   const handleLogout = async () => {
     try {
@@ -234,6 +240,7 @@ function RecruiterDashboard() {
     <div className="min-h-screen bg-[#F7F8FF] text-[#102039]">
       <RecruiterSidebar
         activePage="Dashboard"
+        onNavigate={navigateTo}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         profile={{
@@ -310,7 +317,7 @@ function RecruiterDashboard() {
                     <button
                       type="button"
                       onClick={() =>
-                        setShowProfileMenu(false)
+                        navigate('/recruiter/profile')
                       }
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[12px] font-medium text-[#46545A] transition hover:bg-[#F0F8F7] hover:text-[#006B63]"
                     >

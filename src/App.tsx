@@ -8,6 +8,9 @@ import EmailVerification from './features/auth/pages/EmailVerification';
 import ForgotPassword from './features/auth/pages/ForgotPassword';
 import Login from './features/auth/pages/Login';
 import RecruiterDashboard from './features/recruiter/pages/RecruiterDashboard';
+import RecruiterProfile from './features/recruiter/pages/RecruiterProfile';
+import RecruiterCompany from './features/recruiter/pages/RecruiterCompany';
+import RecruiterVerification from './features/recruiter/pages/RecruiterVerification';
 import RecruiterRegistration from './features/auth/pages/RecruiterRegistration';
 import ResetPassword from './features/auth/pages/ResetPassword';
 
@@ -99,6 +102,10 @@ function App(){
     path="/recruiter/dashboard"
     element={<RecruiterDashboard />}
   />
+      <Route path="/recruiter/profile" element={<RecruiterProfile />} />
+      <Route path="/recruiter/company" element={<RecruiterCompany />} />
+      <Route path="/recruiter/verification" element={<RecruiterVerification />} />
+      <Route path="/recruiter/verification/history" element={<RecruiterVerification historyOnly />} />
 </Route>
 
 <Route element={<ProtectedRoute allowedRoles={['admin']} redirectTo="/admin/login"/>}>
