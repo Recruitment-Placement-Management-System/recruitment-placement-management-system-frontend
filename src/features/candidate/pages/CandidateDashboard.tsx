@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { logout } from '../../../api/auth.api';
 import useAuthStore from '../../../store/auth.store';
@@ -148,6 +148,21 @@ function CandidateDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [notice, setNotice] = useState('');
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showNotice = (message: string) => {
+    setNotice(message);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = message
+      ? setTimeout(() => setNotice(''), 3200)
+      : null;
+  };
+
+  useEffect(
+    () => () => {
+      if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    },
+    [],
+  );
 
   const filteredJobs = recommendedJobs.filter((job) => {
     const query = search.toLowerCase().trim();
@@ -172,11 +187,11 @@ function CandidateDashboard() {
     setActivePage(page);
 
     if (page !== 'Dashboard') {
-      setNotice(
+      showNotice(
         `${page} page navigation will be connected when the route is implemented.`,
       );
     } else {
-      setNotice('');
+      showNotice('');
     }
   };
 
@@ -200,7 +215,7 @@ function CandidateDashboard() {
 
     const job = recommendedJobs.find((item) => item.id === jobId);
 
-    setNotice(
+    showNotice(
       savedJobs.includes(jobId)
         ? `${job?.title ?? 'Job'} removed from saved jobs.`
         : `${job?.title ?? 'Job'} added to saved jobs.`,
@@ -208,7 +223,7 @@ function CandidateDashboard() {
   };
 
   const handleApply = (jobTitle: string) => {
-    setNotice(
+    showNotice(
       `The application flow for ${jobTitle} will be connected to the backend.`,
     );
   };
@@ -344,7 +359,7 @@ function CandidateDashboard() {
 
               <button
                 type="button"
-                onClick={() => setNotice('')}
+                onClick={() => showNotice('')}
                 aria-label="Dismiss message"
               >
                 <X size={16} />
@@ -708,7 +723,7 @@ function CandidateDashboard() {
                   <button
                     type="button"
                     onClick={() =>
-                      setNotice(
+                      showNotice(
                         'The interview joining link will be available once connected to your interview details API.',
                       )
                     }
