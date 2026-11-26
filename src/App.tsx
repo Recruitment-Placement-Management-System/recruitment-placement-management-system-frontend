@@ -11,6 +11,7 @@ import RecruiterDashboard from './features/recruiter/pages/RecruiterDashboard';
 import RecruiterProfile from './features/recruiter/pages/RecruiterProfile';
 import RecruiterCompany from './features/recruiter/pages/RecruiterCompany';
 import RecruiterVerification from './features/recruiter/pages/RecruiterVerification';
+import RecruiterJobs from './features/recruiter/pages/RecruiterJobs';
 import RecruiterRegistration from './features/auth/pages/RecruiterRegistration';
 import ResetPassword from './features/auth/pages/ResetPassword';
 
@@ -103,6 +104,7 @@ function App(){
     element={<RecruiterDashboard />}
   />
       <Route path="/recruiter/profile" element={<RecruiterProfile />} />
+      <Route path="/recruiter/jobs" element={<RecruiterJobs />} />
       <Route path="/recruiter/company" element={<RecruiterCompany />} />
       <Route path="/recruiter/verification" element={<RecruiterVerification />} />
       <Route path="/recruiter/verification/history" element={<RecruiterVerification historyOnly />} />
