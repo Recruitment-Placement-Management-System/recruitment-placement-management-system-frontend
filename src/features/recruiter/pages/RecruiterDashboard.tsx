@@ -220,6 +220,7 @@ function RecruiterDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigateTo = (page: string) => {
     if (page === 'Profile') navigate('/recruiter/profile');
+    else if (page === 'Manage Jobs') navigate('/recruiter/jobs');
     else if (page === 'Company') navigate('/recruiter/company');
     else if (page === 'Verification') navigate('/recruiter/verification');
     else if (page === 'Verification History') navigate('/recruiter/verification/history');
