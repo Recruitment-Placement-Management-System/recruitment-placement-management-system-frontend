@@ -1,5 +1,5 @@
 import { Award, Bell, BriefcaseBusiness, CalendarDays, CircleHelp, FileText, LayoutDashboard, Mail, Search, Settings, UserRound } from 'lucide-react';
-import { Sidebar, type SidebarGroup, type SidebarProps } from '../common/Sidebar';
+import { Sidebar, type SidebarGroup, type SidebarProps } from '../../../components/common/Sidebar';
 
 const groups: SidebarGroup[] = [
   { items: [
@@ -20,3 +20,4 @@ const theme = {
 
 type Props = Omit<SidebarProps, 'roleLabel' | 'groups' | 'theme' | 'onLogout'>;
 export function CandidateSidebar(props: Props) { return <Sidebar {...props} roleLabel="CANDIDATE PORTAL" groups={groups} theme={theme} />; }
+

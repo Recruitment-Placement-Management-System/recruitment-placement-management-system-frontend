@@ -1,5 +1,5 @@
 import { Bell, Bot, BriefcaseBusiness, Building2, CalendarDays, ChartNoAxesCombined, CheckSquare, ClipboardList, LayoutDashboard, MessageSquare, Settings, ShieldCheck, Users, UserRound } from 'lucide-react';
-import { Sidebar, type SidebarGroup, type SidebarProps } from '../common/Sidebar';
+import { Sidebar, type SidebarGroup, type SidebarProps } from '../../../components/common/Sidebar';
 
 const groups: SidebarGroup[] = [
   { label: 'MAIN', items: [

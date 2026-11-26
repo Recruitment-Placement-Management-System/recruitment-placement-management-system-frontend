@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { logout } from '../../../api/auth.api';
 import useAuthStore from '../../../store/auth.store';
-import { RecruiterSidebar } from '../../../components/sidebars/RecruiterSidebar';
+import { RecruiterSidebar } from '../components/RecruiterSidebar';
 import { Navbar } from '../../../components/common/Navbar';
 import { Footer } from '../../../components/common/Footer';
 
@@ -727,3 +727,4 @@ function RecruiterDashboard() {
 }
 
 export default RecruiterDashboard;
+
