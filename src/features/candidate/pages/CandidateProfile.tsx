@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { isAxiosError } from "axios";
 import {
   Award,
   Bell,
@@ -32,6 +33,7 @@ import {
   candidateProfileApi,
   type CandidateJobPreferences,
   type CandidateProfile,
+  type CandidateProfileRecord,
 } from "../../../api/candidate-profile.api";
 
 type Kind =
@@ -41,6 +43,9 @@ type Kind =
   | "certifications"
   | "languages";
 type Field = { key: string; label: string; type?: string; wide?: boolean };
+type FormValue = string | string[] | boolean | undefined;
+type FormValues = Record<string, FormValue>;
+type ProfileRecord = Record<string, string | string[] | boolean | undefined>;
 const specs: Record<
   Kind,
   {
@@ -214,11 +219,21 @@ function webUrl(value?: string) {
   if (!value) return undefined;
   return /^https?:\/\//i.test(value) ? value : `https://${value}`;
 }
-function clean(item: Record<string, any>) {
-  const out = { ...item };
-  if (Array.isArray(out.technologies))
-    out.technologies = out.technologies.join(", ");
+function clean(item: CandidateProfileRecord): FormValues {
+  const out: FormValues = {};
+  for (const [key, value] of Object.entries(item)) {
+    if (key === "technologies" && Array.isArray(value) && value.every((entry) => typeof entry === "string")) out[key] = value.join(", ");
+    else if (typeof value === "string" || typeof value === "boolean") out[key] = value;
+    else if (Array.isArray(value) && value.every((entry) => typeof entry === "string")) out[key] = value;
+  }
   return out;
+}
+function apiErrorMessage(error: unknown, fallback: string) {
+  if (isAxiosError<{ message?: string }>(error)) return error.response?.data?.message || fallback;
+  return fallback;
+}
+function displayValue(value: FormValue) {
+  return typeof value === "string" ? value : Array.isArray(value) ? value.join(", ") : "";
 }
 
 export default function CandidateProfilePage() {
@@ -234,7 +249,7 @@ export default function CandidateProfilePage() {
   const [dialog, setDialog] = useState<{
     kind: Kind;
     index: number | null;
-    values: Record<string, any>;
+    values: FormValues;
   } | null>(null);
   const [personalOpen, setPersonalOpen] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
@@ -253,18 +268,22 @@ export default function CandidateProfilePage() {
   const [editingSkill, setEditingSkill] = useState<string | null>(null);
   const photoRef = useRef<HTMLInputElement>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const load = async () => {
-    try {
-      setProfile(await candidateProfileApi.get());
-      setError("");
-    } catch {
-      setError("Your profile could not be loaded. Please try again.");
-    } finally {
-      setBusy(false);
-    }
-  };
   useEffect(() => {
-    void load();
+    let active = true;
+    candidateProfileApi.get()
+      .then((candidateProfile) => {
+        if (active) setProfile(candidateProfile);
+      })
+      .catch(() => {
+        if (active) setError("Your profile could not be loaded. Please try again.");
+      })
+      .finally(() => {
+        if (active) setBusy(false);
+      });
+    return () => {
+      active = false;
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+    };
   }, []);
   const act = async (fn: () => Promise<CandidateProfile>) => {
     setSaving(true);
@@ -276,11 +295,8 @@ export default function CandidateProfilePage() {
       if (toastTimer.current) clearTimeout(toastTimer.current);
       toastTimer.current = setTimeout(() => setNotice(""), 3200);
       return true;
-    } catch (e: any) {
-      setError(
-        e?.response?.data?.message ||
-          "Could not save your changes. Please try again.",
-      );
+    } catch (e: unknown) {
+      setError(apiErrorMessage(e, "Could not save your changes. Please try again."));
       return false;
     } finally {
       setSaving(false);
@@ -289,8 +305,8 @@ export default function CandidateProfilePage() {
   const openItem = (kind: Kind, index: number | null) => {
     const values =
       index === null
-        ? specs[kind].create
-        : clean((profile?.[kind] as Record<string, any>[])[index]);
+        ? clean(specs[kind].create)
+        : clean((profile?.[kind] as CandidateProfileRecord[])[index]);
     setDialog({ kind, index, values: { ...values } });
   };
   const saveItem = async () => {
@@ -837,10 +853,7 @@ export default function CandidateProfilePage() {
                     {sections.slice(0, 3).map((kind) => {
                       const conf = specs[kind];
                       const Icon = conf.icon;
-                      const rows = (profile[kind] || []) as Record<
-                        string,
-                        any
-                      >[];
+                      const rows = (profile[kind] || []) as ProfileRecord[];
                       return (
                         <section
                           key={kind}
@@ -889,7 +902,9 @@ export default function CandidateProfilePage() {
                                         <p className="mt-0.5 text-sm text-[#626d85]">
                                           {row.companyName ||
                                             row.institution ||
-                                            row.technologies?.join(", ")}
+                                            (Array.isArray(row.technologies)
+                                              ? row.technologies.join(", ")
+                                              : row.technologies)}
                                         </p>
                                       </div>
                                       <div className="flex gap-1">
@@ -936,10 +951,7 @@ export default function CandidateProfilePage() {
                     {sections.slice(3).map((kind) => {
                       const conf = specs[kind];
                       const Icon = conf.icon;
-                      const rows = (profile[kind] || []) as Record<
-                        string,
-                        any
-                      >[];
+                      const rows = (profile[kind] || []) as ProfileRecord[];
                       return (
                         <section
                           key={kind}
@@ -1418,7 +1430,7 @@ export default function CandidateProfilePage() {
                             {f.type === "textarea" ? (
                               <textarea
                                 rows={3}
-                                value={dialog.values[f.key] || ""}
+                                value={displayValue(dialog.values[f.key])}
                                 onChange={(e) =>
                                   setDialog({
                                     ...dialog,
@@ -1433,7 +1445,7 @@ export default function CandidateProfilePage() {
                             ) : (
                               <input
                                 type={f.type || "text"}
-                                value={dialog.values[f.key] || ""}
+                                value={displayValue(dialog.values[f.key])}
                                 onChange={(e) =>
                                   setDialog({
                                     ...dialog,

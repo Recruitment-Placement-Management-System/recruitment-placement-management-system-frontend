@@ -17,11 +17,12 @@ export type CandidateJobPreferences = {
   experienceLevel: "internship" | "entry" | "junior" | "mid" | "senior" | "lead" | "executive" | null;
   noticePeriodDays: number | null;
 };
+export type CandidateProfileRecord = Record<string, unknown>;
 export type CandidateProfile = {
   _id: string; fullName: string; profilePhoto: string; headline: string; bio: string;
   location: Record<string, string>; personalInfo: Record<string, string>; contactLinks: Record<string, string>;
-  skills: Array<string | { name?: string }>; education: Array<Record<string, any>>; experience: Array<Record<string, any>>;
-  projects: Array<Record<string, any>>; certifications: Array<Record<string, any>>;
+  skills: Array<string | { name?: string }>; education: CandidateProfileRecord[]; experience: CandidateProfileRecord[];
+  projects: CandidateProfileRecord[]; certifications: CandidateProfileRecord[];
   languages: Array<{ name: string; proficiency: string }>; resume: CandidateResume | null;
   jobPreferences: CandidateJobPreferences;
 };

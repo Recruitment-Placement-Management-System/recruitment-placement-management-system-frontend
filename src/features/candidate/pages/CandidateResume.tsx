@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { isAxiosError } from "axios";
 import {
   Bell,
   Check,
@@ -56,6 +57,10 @@ const parsingLabels = {
   completed: "Parsing complete",
   failed: "Parsing could not complete",
 };
+function apiErrorMessage(error: unknown, fallback: string) {
+  if (isAxiosError<{ message?: string }>(error)) return error.response?.data?.message || fallback;
+  return fallback;
+}
 
 export default function CandidateResumePage() {
   const navigate = useNavigate();
@@ -80,21 +85,20 @@ export default function CandidateResumePage() {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(""), 3200);
   };
-  const load = async () => {
-    try {
-      setResume(await candidateProfileApi.getResume());
-      setError("");
-    } catch (cause: any) {
-      setError(
-        cause?.response?.data?.message || "Could not load your resume details.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
   useEffect(() => {
-    void load();
+    let active = true;
+    candidateProfileApi.getResume()
+      .then((currentResume) => {
+        if (active) setResume(currentResume);
+      })
+      .catch((cause: unknown) => {
+        if (active) setError(apiErrorMessage(cause, "Could not load your resume details."));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
     return () => {
+      active = false;
       if (toastTimer.current) clearTimeout(toastTimer.current);
     };
   }, []);
@@ -120,11 +124,8 @@ export default function CandidateResumePage() {
           ? "Resume replaced successfully."
           : "Resume uploaded successfully.",
       );
-    } catch (cause: any) {
-      setError(
-        cause?.response?.data?.message ||
-          "Could not upload your resume. Please try again.",
-      );
+    } catch (cause: unknown) {
+      setError(apiErrorMessage(cause, "Could not upload your resume. Please try again."));
     } finally {
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -138,10 +139,8 @@ export default function CandidateResumePage() {
       await candidateProfileApi.deleteResume();
       setResume(null);
       notify("Resume deleted.");
-    } catch (cause: any) {
-      setError(
-        cause?.response?.data?.message || "Could not delete your resume.",
-      );
+    } catch (cause: unknown) {
+      setError(apiErrorMessage(cause, "Could not delete your resume."));
     }
   };
   const initials = (email || "CA").slice(0, 2).toUpperCase();
