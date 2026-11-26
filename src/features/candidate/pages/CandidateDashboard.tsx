@@ -161,6 +161,14 @@ function CandidateDashboard() {
   });
 
   const navigateTo = (page: string) => {
+    if (page === 'My Profile') {
+      navigate('/candidate/profile');
+      return;
+    }
+    if (page === 'Resume') {
+      navigate('/candidate/resume');
+      return;
+    }
     setActivePage(page);
 
     if (page !== 'Dashboard') {

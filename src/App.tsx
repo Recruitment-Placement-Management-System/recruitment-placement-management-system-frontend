@@ -1,6 +1,8 @@
 import { Navigate,Route,Routes } from "react-router-dom";
 
 import CandidateDashboard from "./features/candidate/pages/CandidateDashboard";
+import CandidateProfile from "./features/candidate/pages/CandidateProfile";
+import CandidateResume from "./features/candidate/pages/CandidateResume";
 import CandidateRegistration from './features/auth/pages/CandidateRegistration';
 import EmailVerification from './features/auth/pages/EmailVerification';
 import ForgotPassword from './features/auth/pages/ForgotPassword';
@@ -86,6 +88,9 @@ function App(){
         path="/candidate/dashboard"
         element={<CandidateDashboard />}
       />
+      <Route path="/candidate/profile" element={<CandidateProfile />} />
+      <Route path="/candidate/profile/*" element={<CandidateProfile />} />
+      <Route path="/candidate/resume" element={<CandidateResume />} />
       </Route>
 
       {/* Recruiter */}
