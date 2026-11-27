@@ -1,6 +1,7 @@
 import {
   BarChart3,
   BriefcaseBusiness,
+  Building2,
   ClipboardList,
   FileText,
   LayoutDashboard,
@@ -28,6 +29,7 @@ const groups: SidebarGroup[] = [
     label: "VERIFICATION",
     items: [{ label: "Verification Queue", icon: ShieldCheck }],
   },
+  { label: "COMPANIES", items: [{ label: "Companies", icon: Building2 }] },
   {
     label: "RECRUITMENT",
     items: [
@@ -64,7 +66,7 @@ const theme = {
 
 type Props = Omit<
   SidebarProps,
-  "roleLabel" | "groups" | "theme" | "onNavigate" | "onProfileClick"
+  "roleLabel" | "groups" | "theme" | "onProfileClick"
 >;
 export function AdminSidebar(props: Props) {
   return (

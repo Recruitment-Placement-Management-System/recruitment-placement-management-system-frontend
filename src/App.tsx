@@ -22,6 +22,10 @@ import ResetPassword from "./features/auth/pages/ResetPassword";
 
 import AdminLogin from "./features/admin/pages/AdminLogin";
 import AdminDashboard from "./features/admin/pages/AdminDashboard";
+import AdminUsers from "./features/admin/pages/AdminUsers";
+import AdminDirectory from "./features/admin/pages/AdminDirectory";
+import AdminEntityDetails from "./features/admin/pages/AdminEntityDetails";
+import AdminVerifications from "./features/admin/pages/AdminVerifications";
 
 import ProtectedRoute from "./features/auth/components/ProctectedRoute";
 import GuestRoute from "./features/auth/components/GuestRoute";
@@ -113,6 +117,13 @@ function App() {
         }
       >
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/users" element={<AdminUsers />} />
+        <Route path="/admin/candidates" element={<AdminDirectory />} />
+        <Route path="/admin/recruiters" element={<AdminDirectory />} />
+        <Route path="/admin/companies" element={<AdminDirectory />} />
+        <Route path="/admin/verifications" element={<AdminVerifications />} />
+        <Route path="/admin/verifications/:type/:id" element={<AdminVerifications />} />
+        <Route path="/admin/:type/:id" element={<AdminEntityDetails />} />
       </Route>
 
       {/* Default */}
