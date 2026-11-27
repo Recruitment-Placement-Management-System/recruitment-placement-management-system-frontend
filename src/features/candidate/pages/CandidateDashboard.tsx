@@ -2,6 +2,9 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 
 import { logout } from '../../../api/auth.api';
+import { candidateDashboardApi, type CandidateDashboard as CandidateDashboardData } from '../../../api/candidate-dashboard.api';
+import { candidateJobsApi, type CandidateJob } from '../../../api/candidate-jobs.api';
+import { candidateProfileApi } from '../../../api/candidate-profile.api';
 import useAuthStore from '../../../store/auth.store';
 import { CandidateSidebar } from '../components/CandidateSidebar';
 import { Navbar } from '../../../components/common/Navbar';
@@ -12,100 +15,31 @@ import {
   Search,
   BriefcaseBusiness,
   CalendarDays,
-  Award,
   Mail,
   Bell,
   Settings,
   ChevronRight,
   X,
   Bookmark,
-  Video,
   Clock3,
   MapPin,
   ArrowUpRight,
-  GraduationCap,
+  CircleAlert,
   LogOut,
   Sparkles,
 } from 'lucide-react';
 
-const statistics = [
-  {
-    label: 'Applications',
-    value: '6',
-    icon: BriefcaseBusiness,
-    color: 'text-[#59647d]',
-    background: 'bg-[#eef0f5]',
-    border: 'border-l-[#8993aa]',
-  },
-  {
-    label: 'Under Review',
-    value: '3',
-    icon: Clock3,
-    color: 'text-[#5549ed]',
-    background: 'bg-[#efedff]',
-    border: 'border-l-[#5549ed]',
-  },
-  {
-    label: 'Interviews',
-    value: '1',
-    icon: CalendarDays,
-    color: 'text-[#08a878]',
-    background: 'bg-[#e6fbf3]',
-    border: 'border-l-[#08b889]',
-  },
-  {
-    label: 'Offers',
-    value: '1',
-    icon: Award,
-    color: 'text-[#e69a20]',
-    background: 'bg-[#fff5e4]',
-    border: 'border-l-[#f2a22b]',
-  },
-];
-
-const recommendedJobs = [
-  {
-    id: 'job-1',
-    title: 'Senior Software Engineer',
-    company: 'TechNova',
-    location: 'London',
-    workType: 'Full-time',
-    match: 94,
-    logo: 'T',
-    logoColor: 'bg-[#e7edff] text-[#4457bc]',
-  },
-  {
-    id: 'job-2',
-    title: 'Product Designer',
-    company: 'CloudScale',
-    location: 'Remote',
-    workType: 'Contract',
-    match: 88,
-    logo: 'C',
-    logoColor: 'bg-[#e1faf3] text-[#07866c]',
-  },
-];
-
-const recentApplications = [
-  {
-    id: 'application-1',
-    title: 'Lead Frontend Developer',
-    company: 'Astra',
-    applied: 'Applied 2 days ago',
-    status: 'Under Review',
-    icon: BriefcaseBusiness,
-    statusStyle: 'border-[#d7d1ff] bg-[#f1efff] text-[#5549ed]',
-  },
-  {
-    id: 'application-2',
-    title: 'UX Researcher',
-    company: 'FinFlow',
-    applied: 'Applied 5 days ago',
-    status: 'Applied',
-    icon: GraduationCap,
-    statusStyle: 'border-[#d9deea] bg-[#eff1f5] text-[#64708a]',
-  },
-];
+function statusStyle(status: string) {
+  if (status === 'shortlisted') return 'border-[#bfe8d2] bg-[#eaf8f0] text-[#168254]';
+  if (status === 'rejected' || status === 'withdrawn') return 'border-[#d9deea] bg-[#eff1f5] text-[#64708a]';
+  if (status === 'under_review') return 'border-[#d7d1ff] bg-[#f1efff] text-[#5549ed]';
+  return 'border-[#d9deea] bg-[#eff1f5] text-[#64708a]';
+}
+function dateLabel(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Date unavailable' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+function pretty(value: string) { return value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()); }
 
 function SectionTitle({
   title,
@@ -144,7 +78,10 @@ function CandidateDashboard() {
   const [activePage, setActivePage] = useState('Dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [savedJobs, setSavedJobs] = useState<string[]>([]);
+  const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
+  const [dashboard, setDashboard] = useState<CandidateDashboardData | null>(null);
+  const [profileName, setProfileName] = useState('');
+  const [loading, setLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [notice, setNotice] = useState('');
@@ -157,6 +94,20 @@ function CandidateDashboard() {
       : null;
   };
 
+  useEffect(() => {
+    let active = true;
+    void Promise.allSettled([candidateDashboardApi.get(), candidateProfileApi.get(), candidateJobsApi.saved()])
+      .then(([dashboardResult, profileResult, savedResult]) => {
+        if (!active) return;
+        if (dashboardResult.status === 'fulfilled') setDashboard(dashboardResult.value);
+        else showNotice('Could not load your dashboard data. Please refresh to try again.');
+        if (profileResult.status === 'fulfilled') setProfileName(profileResult.value.fullName || '');
+        if (savedResult.status === 'fulfilled') setSavedJobs(new Set(savedResult.value.map(({ job }) => job._id)));
+      })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+
   useEffect(
     () => () => {
       if (noticeTimer.current) clearTimeout(noticeTimer.current);
@@ -164,13 +115,18 @@ function CandidateDashboard() {
     [],
   );
 
+  const recommendedJobs = dashboard?.recommendedJobs ?? [];
+  const recentApplications = dashboard?.applications.recent ?? [];
+  const applicationCounts = dashboard?.applications.statusCounts;
+  const profilePercentage = dashboard?.profileCompletion.percentage ?? 0;
+  const greetingName = profileName.trim().split(/\s+/)[0] || userEmail?.split('@')[0] || 'there';
   const filteredJobs = recommendedJobs.filter((job) => {
     const query = search.toLowerCase().trim();
 
     return (
       !query ||
       job.title.toLowerCase().includes(query) ||
-      job.company.toLowerCase().includes(query) ||
+      job.companyName.toLowerCase().includes(query) ||
       job.location.toLowerCase().includes(query)
     );
   });
@@ -218,26 +174,30 @@ function CandidateDashboard() {
     }
   };
 
-  const toggleSavedJob = (jobId: string) => {
-    setSavedJobs((current) =>
-      current.includes(jobId)
-        ? current.filter((id) => id !== jobId)
-        : [...current, jobId],
-    );
+  const statistics = [
+    { label: 'Applications', value: dashboard?.applications.total ?? 0, icon: BriefcaseBusiness, color: 'text-[#59647d]', background: 'bg-[#eef0f5]', border: 'border-l-[#8993aa]' },
+    { label: 'Submitted', value: applicationCounts?.submitted ?? 0, icon: Clock3, color: 'text-[#64708a]', background: 'bg-[#eff1f5]', border: 'border-l-[#8993aa]' },
+    { label: 'Under Review', value: applicationCounts?.under_review ?? 0, icon: Search, color: 'text-[#5549ed]', background: 'bg-[#efedff]', border: 'border-l-[#5549ed]' },
+    { label: 'Shortlisted', value: applicationCounts?.shortlisted ?? 0, icon: CalendarDays, color: 'text-[#08a878]', background: 'bg-[#e6fbf3]', border: 'border-l-[#08b889]' },
+    { label: 'Rejected', value: applicationCounts?.rejected ?? 0, icon: X, color: 'text-[#c44759]', background: 'bg-[#fff0f1]', border: 'border-l-[#d85a68]' },
+    { label: 'Withdrawn', value: applicationCounts?.withdrawn ?? 0, icon: CircleAlert, color: 'text-[#7a8498]', background: 'bg-[#eff1f5]', border: 'border-l-[#8993aa]' },
+  ];
 
-    const job = recommendedJobs.find((item) => item.id === jobId);
-
-    showNotice(
-      savedJobs.includes(jobId)
-        ? `${job?.title ?? 'Job'} removed from saved jobs.`
-        : `${job?.title ?? 'Job'} added to saved jobs.`,
-    );
-  };
-
-  const handleApply = (jobTitle: string) => {
-    showNotice(
-      `The application flow for ${jobTitle} will be connected to the backend.`,
-    );
+  const toggleSavedJob = async (job: CandidateJob) => {
+    const isSaved = savedJobs.has(job._id);
+    try {
+      if (isSaved) await candidateJobsApi.unsave(job._id);
+      else await candidateJobsApi.save(job._id);
+      setSavedJobs((current) => {
+        const next = new Set(current);
+        if (isSaved) next.delete(job._id);
+        else next.add(job._id);
+        return next;
+      });
+      showNotice(isSaved ? `${job.title} removed from saved jobs.` : `${job.title} saved for later.`);
+    } catch {
+      showNotice('Could not update saved jobs. Please try again.');
+    }
   };
 
   return (
@@ -411,7 +371,7 @@ function CandidateDashboard() {
                 </p>
 
                 <h2 className="text-[25px] font-bold tracking-[-0.9px] text-[#20283a] sm:text-[29px]">
-                  Good morning, Alex.
+                  Good morning, {greetingName}.
                 </h2>
 
                 <p className="mt-2 text-[13px] leading-6 text-[#69748d] sm:text-[15px]">
@@ -455,14 +415,12 @@ function CandidateDashboard() {
                       stroke="#5549ed"
                       strokeWidth="6"
                       strokeLinecap="round"
-                      strokeDasharray={`${2 * Math.PI * 24 * 0.82} ${
-                        2 * Math.PI * 24
-                      }`}
+                      strokeDasharray={`${2 * Math.PI * 24 * (profilePercentage / 100)} ${2 * Math.PI * 24}`}
                     />
                   </svg>
 
                   <span className="text-[13px] font-bold text-[#263047]">
-                    82%
+                    {loading ? '—' : `${profilePercentage}%`}
                   </span>
                 </div>
               </div>
@@ -479,7 +437,7 @@ function CandidateDashboard() {
           </div>
 
           {/* Application statistics */}
-          <section className="mt-6 grid grid-cols-2 gap-3 xl:grid-cols-4 xl:gap-4">
+          <section className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-6 xl:gap-4">
             {statistics.map(
               ({
                 label,
@@ -492,13 +450,7 @@ function CandidateDashboard() {
                 <button
                   key={label}
                   type="button"
-                  onClick={() =>
-                    navigateTo(
-                      label === 'Applications' || label === 'Under Review'
-                        ? 'My Applications'
-                        : label,
-                    )
-                  }
+                  onClick={() => navigateTo('My Applications')}
                   className={`group relative overflow-hidden rounded-xl border border-[#e0e2ec] border-l-[4px] ${border} bg-white p-4 text-left shadow-[0_2px_4px_rgba(23,32,51,0.025)] transition hover:-translate-y-0.5 hover:shadow-md sm:p-5`}
                 >
                   <div className="flex items-center gap-2.5">
@@ -515,7 +467,7 @@ function CandidateDashboard() {
 
                   <div className="mt-3 flex items-end justify-between">
                     <p className="text-[32px] font-bold leading-none tracking-[-1px] text-[#20283a]">
-                      {value}
+                      {loading ? '—' : value}
                     </p>
 
                     <ChevronRight
@@ -542,21 +494,21 @@ function CandidateDashboard() {
                 <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                   {filteredJobs.length === 0 && (
                     <div className="rounded-xl border border-[#e0e2ec] bg-white p-6 text-[13px] text-[#78839a] lg:col-span-2">
-                      No recommended jobs match your search.
+                      {loading ? 'Loading recommended jobs…' : 'No recommended jobs match your search.'}
                     </div>
                   )}
 
                   {filteredJobs.map((job) => (
                     <article
-                      key={job.id}
+                      key={job._id}
                       className="rounded-xl border border-[#dedfec] bg-white p-4 shadow-[0_2px_5px_rgba(23,32,51,0.025)] transition hover:border-[#c6c0ff] hover:shadow-md sm:p-5"
                     >
                       <div className="flex items-start gap-3">
                         <div
-                          className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[#e4e6ef] ${job.logoColor}`}
+                          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-[#e4e6ef] bg-[#e7edff] text-[#4457bc]"
                         >
                           <span className="text-[19px] font-bold">
-                            {job.logo}
+                            {job.companyName.trim().charAt(0).toUpperCase() || 'C'}
                           </span>
                         </div>
 
@@ -566,20 +518,20 @@ function CandidateDashboard() {
                           </h3>
 
                           <p className="mt-1 text-[12px] text-[#78839a]">
-                            {job.company}
+                            {job.companyName}
                           </p>
                         </div>
 
                         <button
                           type="button"
-                          onClick={() => toggleSavedJob(job.id)}
+                          onClick={() => void toggleSavedJob(job)}
                           aria-label={
-                            savedJobs.includes(job.id)
+                            savedJobs.has(job._id)
                               ? 'Remove saved job'
                               : 'Save job'
                           }
                           className={`rounded-md p-1.5 transition ${
-                            savedJobs.includes(job.id)
+                            savedJobs.has(job._id)
                               ? 'text-[#5046e5]'
                               : 'text-[#929bb0] hover:bg-[#f1f0ff] hover:text-[#5046e5]'
                           }`}
@@ -587,7 +539,7 @@ function CandidateDashboard() {
                           <Bookmark
                             size={18}
                             fill={
-                              savedJobs.includes(job.id)
+                              savedJobs.has(job._id)
                                 ? 'currentColor'
                                 : 'none'
                             }
@@ -602,19 +554,19 @@ function CandidateDashboard() {
                         </span>
 
                         <span className="rounded-md bg-[#eff1f5] px-2.5 py-1.5 text-[10px] font-medium text-[#566178]">
-                          {job.workType}
+                          {pretty(job.workMode)} · {pretty(job.employmentType)}
                         </span>
                       </div>
 
                       <div className="mt-5 flex items-center justify-between gap-2 border-t border-[#e7e7f0] pt-4">
                         <span className="inline-flex items-center gap-1 rounded-md bg-gradient-to-r from-[#f0eaff] to-[#f6edff] px-2.5 py-1.5 text-[10px] font-bold text-[#7940df]">
                           <Sparkles size={12} />
-                          {job.match}% match
+                          Recommended
                         </span>
 
                         <button
                           type="button"
-                          onClick={() => handleApply(job.title)}
+                          onClick={() => navigate(`/candidate/jobs/${job._id}/apply`)}
                           className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-[12px] font-bold text-[#5046e5] transition hover:bg-[#f0efff]"
                         >
                           Apply
@@ -635,58 +587,22 @@ function CandidateDashboard() {
                 />
 
                 <div className="overflow-hidden rounded-xl border border-[#dedfec] bg-white shadow-[0_2px_5px_rgba(23,32,51,0.025)]">
-                  {recentApplications.map(
-                    (
-                      {
-                        id,
-                        title,
-                        company,
-                        applied,
-                        status,
-                        icon: Icon,
-                        statusStyle,
-                      },
-                      index,
-                    ) => (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => navigateTo('My Applications')}
-                        className={`flex w-full items-center gap-3.5 px-4 py-4 text-left transition hover:bg-[#fafaff] sm:px-5 ${
-                          index > 0 ? 'border-t border-[#e7e7f0]' : ''
-                        }`}
-                      >
-                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#f0f1f5] to-[#e3e6ed] text-[#68748d]">
-                          <Icon size={18} />
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[12px] font-bold text-[#263047]">
-                            {title}
-                          </p>
-
-                          <p className="mt-1 truncate text-[11px] text-[#78839a]">
-                            {company} · {applied}
-                          </p>
-                        </div>
-
-                        <span
-                          className={`hidden shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold sm:inline-flex ${statusStyle}`}
-                        >
-                          {status === 'Under Review' && (
-                            <span className="h-1.5 w-1.5 rounded-full bg-[#5549ed]" />
-                          )}
-
-                          {status}
-                        </span>
-
-                        <ChevronRight
-                          size={17}
-                          className="shrink-0 text-[#929bb0]"
-                        />
-                      </button>
-                    ),
-                  )}
+                  {recentApplications.length === 0 ? <p className="px-5 py-8 text-center text-[12px] text-[#78839a]">{loading ? 'Loading applications…' : 'Your recent applications will appear here.'}</p> : recentApplications.map((application, index) => (
+                    <button
+                      key={application.id}
+                      type="button"
+                      onClick={() => navigate(`/candidate/applications/${application.id}`)}
+                      className={`flex w-full items-center gap-3.5 px-4 py-4 text-left transition hover:bg-[#fafaff] sm:px-5 ${index > 0 ? 'border-t border-[#e7e7f0]' : ''}`}
+                    >
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#f0f1f5] to-[#e3e6ed] text-[#68748d]"><BriefcaseBusiness size={18}/></div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[12px] font-bold text-[#263047]">{application.jobTitle || 'Job posting'}</p>
+                        <p className="mt-1 truncate text-[11px] text-[#78839a]">{application.companyName || 'Company'} · Applied {dateLabel(application.submittedAt)}</p>
+                      </div>
+                      <span className={`hidden shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold sm:inline-flex ${statusStyle(application.status)}`}>{pretty(application.status)}</span>
+                      <ChevronRight size={17} className="shrink-0 text-[#929bb0]"/>
+                    </button>
+                  ))}
                 </div>
               </section>
             </div>
@@ -704,51 +620,20 @@ function CandidateDashboard() {
                     </span>
                   </div>
 
-                  <h2 className="mt-5 text-[26px] font-bold tracking-[-0.8px] text-[#20283a]">
-                    Tomorrow
-                  </h2>
-
-                  <p className="mt-1 text-[20px] font-semibold text-[#5c6680]">
-                    10:30 AM
-                  </p>
-
-                  <p className="mt-1 text-[11px] text-[#8a94a9]">
-                    Confirm the time zone in your interview invitation.
-                  </p>
-
-                  <div className="mt-5 rounded-xl border border-[#dfe3ed] bg-gradient-to-br from-[#f6f7fa] to-[#eef0f5] p-4">
-                    <p className="text-[12px] font-bold leading-5 text-[#30384a]">
-                      Technical Interview with TechNova
-                    </p>
-
-                    <p className="mt-2 flex items-center gap-2 text-[11px] text-[#67738c]">
-                      <BriefcaseBusiness size={14} />
-                      Software Engineer role
-                    </p>
-
-                    <p className="mt-2 flex items-center gap-2 text-[11px] text-[#67738c]">
-                      <Clock3 size={14} />
-                      Duration: 45 minutes
-                    </p>
+                  <div className="mt-5 rounded-xl border border-dashed border-[#dfe3ed] bg-[#fafbfe] px-4 py-8 text-center">
+                    <span className="mx-auto grid h-11 w-11 place-items-center rounded-full bg-[#e6fbf3] text-[#08a878]"><CalendarDays size={20}/></span>
+                    <p className="mt-3 text-[13px] font-semibold text-[#30384a]">No upcoming interviews</p>
+                    <p className="mt-1 text-[11px] leading-5 text-[#8a94a9]">Scheduled interviews will appear here.</p>
                   </div>
 
                   <button
                     type="button"
-                    onClick={() =>
-                      showNotice(
-                        'The interview joining link will be available once connected to your interview details API.',
-                      )
-                    }
-                    className="mt-4 flex h-[42px] w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#5549ed] to-[#493de0] text-[12px] font-semibold text-white shadow-[0_4px_12px_rgba(80,70,229,0.18)] transition hover:from-[#4b40dc] hover:to-[#3f34cd] focus:outline-none focus:ring-4 focus:ring-[#5046e5]/20"
+                    onClick={() => navigateTo('My Applications')}
+                    className="mt-4 flex h-[42px] w-full items-center justify-center gap-2 rounded-lg border border-[#dcd9f0] bg-white text-[12px] font-semibold text-[#5046e5] transition hover:bg-[#f7f6ff]"
                   >
-                    <Video size={17} />
-                    View interview details
+                    View applications
                     <ChevronRight size={15} />
                   </button>
-
-                  <p className="mt-3 text-center text-[10px] leading-5 text-[#8992a6]">
-                    Check your interview details before joining.
-                  </p>
                 </div>
               </section>
 
