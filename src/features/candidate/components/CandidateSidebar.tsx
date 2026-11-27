@@ -1,10 +1,10 @@
-import { Award, Bell, BriefcaseBusiness, CalendarDays, CircleHelp, FileText, LayoutDashboard, Mail, Search, Settings, UserRound } from 'lucide-react';
+import { Award, Bell, Bookmark, BriefcaseBusiness, CalendarDays, CircleHelp, FileText, LayoutDashboard, Mail, Search, Settings, UserRound } from 'lucide-react';
 import { Sidebar, type SidebarGroup, type SidebarProps } from '../../../components/common/Sidebar';
 
 const groups: SidebarGroup[] = [
   { items: [
     { label: 'Dashboard', icon: LayoutDashboard }, { label: 'My Profile', icon: UserRound },
-    { label: 'Resume', icon: FileText }, { label: 'Find Jobs', icon: Search },
+    { label: 'Resume', icon: FileText }, { label: 'Find Jobs', icon: Search }, { label: 'Saved Jobs', icon: Bookmark },
     { label: 'My Applications', icon: BriefcaseBusiness }, { label: 'Interviews', icon: CalendarDays },
     { label: 'Offers', icon: Award }, { label: 'Messages', icon: Mail }, { label: 'Notifications', icon: Bell, dot: true },
   ] },

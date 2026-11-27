@@ -19,6 +19,7 @@ export function RecruiterModuleLayout({ title, context, activePage, children }: 
   const navigateTo = (page: string) => {
     if (page === "Dashboard") navigate("/recruiter/dashboard");
     else if (page === "Manage Jobs") navigate("/recruiter/jobs");
+    else if (page === "Applications") navigate("/recruiter/applications");
     else if (page === "Profile") navigate("/recruiter/profile");
     else if (page === "Company") navigate("/recruiter/company");
     else if (page === "Verification") navigate("/recruiter/verification");
