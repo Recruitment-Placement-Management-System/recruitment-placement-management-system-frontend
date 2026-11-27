@@ -1,4 +1,6 @@
-import { useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
+import { recruiterJobsApi, type RecruiterJob } from '../../../api/recruiter-jobs.api';
+import { recruiterApplicationsApi, type RecruiterApplication } from '../../../api/recruiter-applications.api';
 import { useNavigate } from 'react-router-dom';
 
 import { logout } from '../../../api/auth.api';
@@ -20,168 +22,20 @@ import {
   Plus,
   Search,
   Settings,
-  Sparkles,
   Users,
   Bot,
   TrendingUp,
   UserRound,
 } from 'lucide-react';
 
-const stats = [
-  {
-    label: 'ACTIVE JOBS',
-    value: '12',
-    detail: '+2 this week',
-    icon: BriefcaseBusiness,
-  },
-  {
-    label: 'TOTAL APPLICATIONS',
-    value: '148',
-    detail: '+18 this month',
-    icon: FileText,
-  },
-  {
-    label: 'CANDIDATES',
-    value: '326',
-    detail: '+24 new',
-    icon: Users,
-  },
-  {
-    label: 'INTERVIEWS',
-    value: '18',
-    detail: '6 scheduled today',
-    icon: CalendarDays,
-  },
-];
-
-const pipeline = [
-  {
-    label: 'Applied',
-    count: 148,
-    rate: '100%',
-    progress: '100%',
-    note: 'Initial entries',
-  },
-  {
-    label: 'Screening',
-    count: 42,
-    rate: '28.4%',
-    progress: '28.4%',
-    note: 'Resume review',
-  },
-  {
-    label: 'Shortlisted',
-    count: 21,
-    rate: '50.0%',
-    progress: '50%',
-    note: 'Lead qualified',
-  },
-  {
-    label: 'Interview',
-    count: 18,
-    rate: '85.7%',
-    progress: '85.7%',
-    note: 'In progression',
-  },
-  {
-    label: 'Offer',
-    count: 5,
-    rate: '27.7%',
-    progress: '27.7%',
-    note: 'Offers issued',
-  },
-  {
-    label: 'Hired',
-    count: 2,
-    rate: '40.0%',
-    progress: '40%',
-    note: 'Signed & seated',
-  },
-];
-
-const jobs = [
-  {
-    title: 'Senior Software Engineer',
-    department: 'Engineering',
-    details: 'Full-time · San Francisco, CA / Remote',
-    status: 'Published',
-    applicants: 128,
-    shortlisted: 19,
-    interviews: 7,
-  },
-  {
-    title: 'Frontend Developer',
-    department: 'Product & Tech',
-    details: 'Full-time · New York, NY',
-    status: 'Published',
-    applicants: 88,
-    shortlisted: 12,
-    interviews: 4,
-  },
-  {
-    title: 'Product Designer',
-    department: 'Design & UX',
-    details: 'Full-time · Austin, TX',
-    status: 'Draft',
-    applicants: 42,
-    shortlisted: 7,
-    interviews: 2,
-  },
-];
-
-const interviews = [
-  {
-    initials: 'AT',
-    name: 'Alex Thompson',
-    role: 'Senior Software Engineer',
-    time: 'Today · 2:00 PM',
-    type: 'Technical Interview',
-    color: 'bg-[#087F75]',
-  },
-  {
-    initials: 'EC',
-    name: 'Emily Carter',
-    role: 'Frontend Developer',
-    time: 'Tomorrow · 10:30 AM',
-    type: 'Technical Interview',
-    color: 'bg-[#426C69]',
-  },
-  {
-    initials: 'MR',
-    name: 'Michael Reed',
-    role: 'Product Designer',
-    time: 'Sep 6 · 3:00 PM',
-    type: 'Portfolio Review',
-    color: 'bg-[#006B63]',
-  },
-];
-
-const applications = [
-  {
-    initials: 'AT',
-    name: 'Alex Thompson',
-    role: 'Senior Software Engineer',
-    time: 'Applied today',
-    match: '96%',
-    status: 'Under Review',
-  },
-  {
-    initials: 'PS',
-    name: 'Priya Sharma',
-    role: 'Frontend Developer',
-    time: 'Applied today',
-    match: '92%',
-    status: 'Screening',
-  },
-  {
-    initials: 'MR',
-    name: 'Michael Reed',
-    role: 'Product Designer',
-    time: 'Applied yesterday',
-    match: '88%',
-    status: 'Shortlisted',
-  },
-];
+const formatStatus = (status: RecruiterApplication['status']) => status.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+const formatDate = (date: string) => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(date));
+const formatRelativeDate = (date: string) => {
+  const days = Math.floor((Date.now() - new Date(date).getTime()) / 86_400_000);
+  if (days <= 0) return 'Applied today';
+  if (days === 1) return 'Applied yesterday';
+  return `Applied ${days} days ago`;
+};
 
 function SectionHeading({
   title,
@@ -216,10 +70,67 @@ function RecruiterDashboard() {
     (state) => state.logout
   );
   const userEmail = useAuthStore((state) => state.user?.email);
+  const [jobs, setJobs] = useState<RecruiterJob[]>([]);
+  const [applications, setApplications] = useState<RecruiterApplication[]>([]);
+  const [loadingDashboard, setLoadingDashboard] = useState(true);
+  const [dashboardError, setDashboardError] = useState('');
 
   const [showProfileMenu, setShowProfileMenu] =
     useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const loadDashboard = async () => {
+      setLoadingDashboard(true);
+      setDashboardError('');
+      try {
+        const [jobPage, applicationPage] = await Promise.all([
+          recruiterJobsApi.list({ page: 1, limit: 100, sortBy: 'latest' }),
+          recruiterApplicationsApi.list({ page: 1, limit: 100 }),
+        ]);
+        const [jobPages, applicationPages] = await Promise.all([
+          Promise.all(Array.from({ length: Math.max(0, jobPage.pagination.pages - 1) }, (_, index) => recruiterJobsApi.list({ page: index + 2, limit: 100, sortBy: 'latest' }))),
+          Promise.all(Array.from({ length: Math.max(0, applicationPage.pagination.pages - 1) }, (_, index) => recruiterApplicationsApi.list({ page: index + 2, limit: 100 }))),
+        ]);
+        if (!active) return;
+        setJobs([...jobPage.jobs, ...jobPages.flatMap((page) => page.jobs)]);
+        setApplications([...applicationPage.applications, ...applicationPages.flatMap((page) => page.applications)]);
+      } catch (error) {
+        console.error('Failed to load recruiter dashboard:', error);
+        if (active) setDashboardError('We could not load your recruitment activity. Please refresh the page.');
+      } finally {
+        if (active) setLoadingDashboard(false);
+      }
+    };
+    void loadDashboard();
+    return () => { active = false; };
+  }, []);
+
+  const applicationCounts = useMemo(() => ({
+    submitted: applications.filter((application) => application.status === 'submitted').length,
+    underReview: applications.filter((application) => application.status === 'under_review').length,
+    shortlisted: applications.filter((application) => application.status === 'shortlisted').length,
+    rejected: applications.filter((application) => application.status === 'rejected').length,
+  }), [applications]);
+  const stats = [
+    { label: 'PUBLISHED JOBS', value: jobs.filter((job) => job.status === 'published').length, detail: `${jobs.length} total jobs`, icon: BriefcaseBusiness },
+    { label: 'TOTAL APPLICATIONS', value: applications.length, detail: 'Across your jobs', icon: FileText },
+    { label: 'UNIQUE CANDIDATES', value: new Set(applications.map((application) => application.candidateId)).size, detail: 'Have applied', icon: Users },
+    { label: 'SHORTLISTED', value: applicationCounts.shortlisted, detail: 'Ready for next step', icon: CalendarDays },
+  ];
+  const pipeline = [
+    { label: 'Submitted', count: applicationCounts.submitted, note: 'New applications' },
+    { label: 'Under review', count: applicationCounts.underReview, note: 'In review' },
+    { label: 'Shortlisted', count: applicationCounts.shortlisted, note: 'Selected candidates' },
+    { label: 'Rejected', count: applicationCounts.rejected, note: 'Closed applications' },
+  ].map((stage) => ({ ...stage, progress: applications.length ? `${Math.round((stage.count / applications.length) * 100)}%` : '0%', rate: applications.length ? `${Math.round((stage.count / applications.length) * 100)}%` : '0%' }));
+  const recentApplications = [...applications].sort((a, b) => Date.parse(b.submittedAt) - Date.parse(a.submittedAt)).slice(0, 5);
+  const jobApplicationCounts = applications.reduce<Record<string, number>>((counts, application) => {
+    counts[application.jobId] = (counts[application.jobId] ?? 0) + 1;
+    return counts;
+  }, {});
+  const activeJobs = jobs.filter((job) => job.status === 'published').slice(0, 4);
   const navigateTo = (page: string) => {
     if (page === 'Profile') navigate('/recruiter/profile');
     else if (page === 'Manage Jobs') navigate('/recruiter/jobs');
@@ -364,7 +275,7 @@ function RecruiterDashboard() {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-[27px] font-bold tracking-tight text-[#102039] sm:text-[30px]">
-                    Good morning, Sarah
+                    Good morning, {userEmail?.split('@')[0] ?? 'Recruiter'}
                   </h1>
 
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-[#BFE9E5] px-2.5 py-1 text-[10px] font-bold text-[#006B63]">
@@ -381,15 +292,15 @@ function RecruiterDashboard() {
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex h-9 items-center gap-2 rounded-lg border border-[#E5EAF2] bg-white px-3 text-[11px] text-[#46545A]">
                   <span className="h-2 w-2 rounded-full bg-[#006B63]" />
-                  Today: Oct 14, 2024
+                  Today: {formatDate(new Date().toISOString())}
                 </div>
 
-                <button className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#BFD5D2] bg-white px-3 text-[11px] font-semibold text-[#006B63] transition hover:bg-[#F0F8F7]">
+                <button onClick={() => navigate('/recruiter/applications')} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-[#BFD5D2] bg-white px-3 text-[11px] font-semibold text-[#006B63] transition hover:bg-[#F0F8F7]">
                   <Users size={15} />
                   Find Candidates
                 </button>
 
-                <button className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#006B63] px-3 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[#00564F]">
+                <button onClick={() => navigate('/recruiter/jobs')} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-[#006B63] px-3 text-[11px] font-semibold text-white shadow-sm transition hover:bg-[#00564F]">
                   <Plus size={15} />
                   Create Job
                 </button>
@@ -460,10 +371,10 @@ function RecruiterDashboard() {
                 <div className="inline-flex items-center gap-1.5 rounded-lg bg-[#EEF4FF] px-3 py-2 text-[10px] text-[#46545A]">
                   <Filter size={13} />
 
-                  Aggregate Conversion:
+                    Application total:
 
                   <span className="font-bold text-[#006B63]">
-                    14.8%
+                    {applications.length}
                   </span>
                 </div>
               </div>
@@ -509,228 +420,58 @@ function RecruiterDashboard() {
 
             <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr_1fr]">
               <article className="min-w-0 rounded-xl border border-[#EDF0F5] bg-white p-4 sm:p-5">
-                <SectionHeading
-                  title="Active Jobs"
-                  action="Manage Jobs"
-                />
-
-                <div className="space-y-2.5">
-                  {jobs.map((job) => (
-                    <div
-                      key={job.title}
-                      className="rounded-xl bg-[#EEF4FF] p-3.5 transition hover:bg-[#E7F0FF]"
-                    >
+                <SectionHeading title="Published Jobs" action="Manage Jobs" onAction={() => navigate('/recruiter/jobs')} />
+                {dashboardError ? <p className="py-8 text-center text-[12px] text-red-600">{dashboardError}</p> : loadingDashboard ? <p className="py-8 text-center text-[12px] text-[#52606B]">Loading your jobs...</p> : activeJobs.length ? <div className="space-y-2.5">
+                  {activeJobs.map((job) => (
+                    <div key={job._id} className="rounded-xl bg-[#EEF4FF] p-3.5 transition hover:bg-[#E7F0FF]">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-[12px] font-bold text-[#102039]">
-                              {job.title}
-                            </h3>
-
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
-                                job.status === 'Published'
-                                  ? 'bg-[#BFE9E5] text-[#006B63]'
-                                  : 'bg-[#DCE8FF] text-[#42617D]'
-                              }`}
-                            >
-                              <span className="mr-1">
-                                ●
-                              </span>
-
-                              {job.status}
-                            </span>
+                            <h3 className="text-[12px] font-bold text-[#102039]">{job.title}</h3>
+                            <span className="rounded-full bg-[#BFE9E5] px-2 py-0.5 text-[9px] font-semibold text-[#006B63]">Published</span>
                           </div>
-
-                          <p className="mt-1.5 text-[10px] text-[#46545A]">
-                            {job.department} · {job.details}
-                          </p>
+                          <p className="mt-1.5 text-[10px] text-[#46545A]">{job.companyName} · {job.employmentType.replaceAll('_', ' ')} · {job.location} · {job.workMode}</p>
                         </div>
-
-                        <button className="shrink-0 rounded-lg bg-white px-3 py-1.5 text-[10px] font-semibold text-[#006B63] shadow-sm transition hover:bg-[#BFE9E5]">
-                          View Job
-                        </button>
+                        <button onClick={() => navigate('/recruiter/jobs')} className="shrink-0 rounded-lg bg-white px-3 py-1.5 text-[10px] font-semibold text-[#006B63] shadow-sm transition hover:bg-[#BFE9E5]">View Job</button>
                       </div>
-
-                      <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-semibold text-[#6C7A7E]">
-                        <span>
-                          {job.applicants} applied
-                        </span>
-
-                        <span>·</span>
-
-                        <span>
-                          {job.shortlisted} shortlisted
-                        </span>
-
-                        <span>·</span>
-
-                        <span>
-                          {job.interviews} interviews
-                        </span>
-                      </div>
+                      <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-semibold text-[#6C7A7E]"><span>{jobApplicationCounts[job._id] ?? 0} applications</span><span>·</span><span>{formatDate(job.createdAt)}</span></div>
                     </div>
                   ))}
-                </div>
+                </div> : <p className="py-8 text-center text-[12px] text-[#52606B]">No published jobs yet. Create a job to start receiving applications.</p>}
               </article>
 
               <article className="min-w-0 rounded-xl border border-[#EDF0F5] bg-white p-4 sm:p-5">
-                <SectionHeading
-                  title="Upcoming Interviews"
-                  action="View All"
-                />
-
-                <div className="space-y-2.5">
-                  {interviews.map((interview) => (
-                    <div
-                      key={interview.name}
-                      className="flex items-center gap-2.5 rounded-xl bg-[#EEF4FF] p-3"
-                    >
-                      <div
-                        className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-[10px] font-bold text-white ${interview.color}`}
-                      >
-                        {interview.initials}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[11px] font-bold text-[#102039]">
-                          {interview.name}
-                        </p>
-
-                        <p className="truncate text-[10px] text-[#52606B]">
-                          {interview.role}
-                        </p>
-
-                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                          <span className="text-[9px] font-semibold text-[#006B63]">
-                            {interview.time}
-                          </span>
-
-                          <span className="rounded bg-[#DCE8FF] px-1.5 py-0.5 text-[9px] text-[#52606B]">
-                            {interview.type}
-                          </span>
-                        </div>
-                      </div>
-
-                      <button className="shrink-0 rounded-md bg-white px-2 py-1.5 text-[10px] font-semibold text-[#102039] hover:bg-[#BFE9E5]">
-                        Details
-                      </button>
-                    </div>
-                  ))}
+                <SectionHeading title="Interview Scheduling" />
+                <div className="grid min-h-40 place-items-center rounded-xl bg-[#EEF4FF] p-5 text-center">
+                  <div><CalendarDays size={24} className="mx-auto text-[#8090A5]" /><p className="mt-2 text-[12px] font-semibold text-[#102039]">No interviews scheduled</p><p className="mt-1 max-w-xs text-[11px] text-[#52606B]">Interview scheduling is not available yet. Shortlisted candidates will appear in Applications.</p><button onClick={() => navigate('/recruiter/applications')} className="mt-3 text-[11px] font-semibold text-[#006B63]">Review applications ?</button></div>
                 </div>
               </article>
             </section>
 
-            {/* Recent applications and AI insights */}
-
+            {/* Recent applications and hiring summary */}
             <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr_1fr]">
               <article className="min-w-0 rounded-xl border border-[#EDF0F5] bg-white p-4 sm:p-5">
-                <SectionHeading
-                  title="Recent Applications"
-                  action="View Applications"
-                  onAction={() => navigate("/recruiter/applications")}
-                />
-
-                <div className="divide-y divide-[#E8ECF5]">
-                  {applications.map((application) => (
-                    <div
-                      key={application.name}
-                      className="flex flex-wrap items-center gap-3 py-3 first:pt-1 last:pb-1"
-                    >
-                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#DCE8FF] text-[10px] font-bold text-[#006B63]">
-                        {application.initials}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-[11px] font-bold text-[#102039]">
-                            {application.name}
-                          </p>
-
-                          <span className="rounded-full bg-[#BFE9E5] px-2 py-0.5 text-[9px] font-bold text-[#006B63]">
-                            {application.match} match
-                          </span>
-
-                          <span className="rounded-full bg-[#DCE8FF] px-2 py-0.5 text-[9px] text-[#52606B]">
-                            {application.status}
-                          </span>
-                        </div>
-
-                        <p className="mt-1 text-[10px] text-[#52606B]">
-                          {application.role} · {application.time}
-                        </p>
-                      </div>
-
-                      <button className="shrink-0 rounded-lg bg-[#EEF4FF] px-3 py-2 text-[10px] font-semibold text-[#102039] transition hover:bg-[#BFE9E5]">
-                        Review
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                <SectionHeading title="Recent Applications" action="View Applications" onAction={() => navigate('/recruiter/applications')} />
+                {dashboardError ? <p className="py-6 text-center text-[12px] text-red-600">{dashboardError}</p> : loadingDashboard ? <p className="py-6 text-center text-[12px] text-[#52606B]">Loading applications...</p> : recentApplications.length ? <div className="divide-y divide-[#E8ECF5]">
+                  {recentApplications.map((application) => {
+                    const job = jobs.find((item) => item._id === application.jobId);
+                    const initials = application.candidate.fullName.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase();
+                    return <div key={application._id} className="flex flex-wrap items-center gap-3 py-3 first:pt-1 last:pb-1">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#DCE8FF] text-[10px] font-bold text-[#006B63]">{initials}</div>
+                      <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="text-[11px] font-bold text-[#102039]">{application.candidate.fullName}</p><span className="rounded-full bg-[#DCE8FF] px-2 py-0.5 text-[9px] text-[#52606B]">{formatStatus(application.status)}</span></div><p className="mt-1 text-[10px] text-[#52606B]">{job?.title ?? 'Job'} · {formatRelativeDate(application.submittedAt)}</p></div>
+                      <button onClick={() => navigate('/recruiter/applications')} className="shrink-0 rounded-lg bg-[#EEF4FF] px-3 py-2 text-[10px] font-semibold text-[#102039] transition hover:bg-[#BFE9E5]">Review</button>
+                    </div>;
+                  })}
+                </div> : <p className="py-6 text-center text-[12px] text-[#52606B]">No applications have been submitted yet.</p>}
               </article>
 
-              {/* Purple is intentionally limited to AI insights */}
-
-              <article className="rounded-xl border border-[#F0E7FA] bg-[#FAF5FF] p-4 sm:p-5">
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 text-[#7625B9]">
-                    <Sparkles size={16} />
-
-                    <h2 className="text-[12px] font-bold tracking-wide">
-                      AI RECRUITMENT INSIGHT
-                    </h2>
-                  </div>
-
-                  <span className="rounded-full bg-[#F0DFFF] px-2 py-1 text-[9px] font-bold text-[#7625B9]">
-                    AI MATCH ENGINE
-                  </span>
-                </div>
-
-                <div className="rounded-lg border border-[#F1E9F9] bg-white p-3.5">
-                  <p className="text-[11px] leading-5 text-[#102039]">
-                    “12 candidates have a profile match above 90% for your
-                    Senior Software Engineer position.”
-                  </p>
-                </div>
-
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div className="rounded-lg bg-white p-3">
-                    <p className="text-[9px] font-bold tracking-wide text-[#8B27CB]">
-                      AVG MATCH
-                    </p>
-
-                    <p className="mt-1 text-[23px] font-bold leading-none text-[#42106D]">
-                      94%
-                    </p>
-
-                    <p className="mt-1.5 text-[9px] text-[#7A858F]">
-                      High precision model
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg bg-white p-3">
-                    <p className="text-[9px] font-bold tracking-wide text-[#8B27CB]">
-                      HIGH MATCHES
-                    </p>
-
-                    <p className="mt-1 text-[23px] font-bold leading-none text-[#42106D]">
-                      12
-                    </p>
-
-                    <p className="mt-1.5 text-[9px] text-[#7A858F]">
-                      Ready for review
-                    </p>
-                  </div>
-                </div>
-
-                <button className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-[#8422CC] text-[11px] font-semibold text-white transition hover:bg-[#701BB0]">
-                  <Sparkles size={14} />
-                  View AI Matches
-                  <ArrowRight size={14} />
-                </button>
+              <article className="rounded-xl border border-[#EDF0F5] bg-white p-4 sm:p-5">
+                <div className="mb-4 flex items-center gap-2 text-[#006B63]"><Activity size={16} /><h2 className="text-[12px] font-bold tracking-wide">HIRING ACTIVITY</h2></div>
+                <div className="rounded-lg bg-[#EEF4FF] p-3.5"><p className="text-[11px] leading-5 text-[#102039]">{applications.length ? `${applications.length} applications received across ${jobs.length} jobs. ${applicationCounts.shortlisted} candidates are shortlisted for next steps.` : 'Your hiring activity will appear here once candidates apply to your jobs.'}</p></div>
+                <div className="mt-3 grid grid-cols-2 gap-2"><div className="rounded-lg bg-[#EEF4FF] p-3"><p className="text-[9px] font-bold tracking-wide text-[#006B63]">DRAFT JOBS</p><p className="mt-1 text-[23px] font-bold leading-none text-[#102039]">{jobs.filter((job) => job.status === 'draft').length}</p><p className="mt-1.5 text-[9px] text-[#7A858F]">Awaiting publication</p></div><div className="rounded-lg bg-[#EEF4FF] p-3"><p className="text-[9px] font-bold tracking-wide text-[#006B63]">SHORTLISTED</p><p className="mt-1 text-[23px] font-bold leading-none text-[#102039]">{applicationCounts.shortlisted}</p><p className="mt-1.5 text-[9px] text-[#7A858F]">Candidates to follow up</p></div></div>
+                <button onClick={() => navigate('/recruiter/applications')} className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg bg-[#006B63] text-[11px] font-semibold text-white transition hover:bg-[#00564F]">Review applications<ArrowRight size={14} /></button>
               </article>
             </section>
-
             <Footer role="Recruiter Portal" status={<><Activity size={12} className="text-[#006B63]" /> All systems operational</>} />
           </div>
         </main>
@@ -739,4 +480,5 @@ function RecruiterDashboard() {
 }
 
 export default RecruiterDashboard;
+
 
