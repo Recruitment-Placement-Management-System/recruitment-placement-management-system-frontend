@@ -186,9 +186,11 @@ const applications = [
 function SectionHeading({
   title,
   action,
+  onAction,
 }: {
   title: string;
   action?: string;
+  onAction?: () => void;
 }) {
   return (
     <div className="mb-4 flex items-center justify-between gap-3">
@@ -197,7 +199,7 @@ function SectionHeading({
       </h2>
 
       {action && (
-        <button className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#006B63] transition hover:text-[#004F49]">
+        <button type="button" onClick={onAction} className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#006B63] transition hover:text-[#004F49]">
           {action}
 
           <ArrowRight size={13} />
@@ -221,6 +223,7 @@ function RecruiterDashboard() {
   const navigateTo = (page: string) => {
     if (page === 'Profile') navigate('/recruiter/profile');
     else if (page === 'Manage Jobs') navigate('/recruiter/jobs');
+    else if (page === 'Applications') navigate('/recruiter/applications');
     else if (page === 'Company') navigate('/recruiter/company');
     else if (page === 'Verification') navigate('/recruiter/verification');
     else if (page === 'Verification History') navigate('/recruiter/verification/history');
@@ -625,6 +628,7 @@ function RecruiterDashboard() {
                 <SectionHeading
                   title="Recent Applications"
                   action="View Applications"
+                  onAction={() => navigate("/recruiter/applications")}
                 />
 
                 <div className="divide-y divide-[#E8ECF5]">

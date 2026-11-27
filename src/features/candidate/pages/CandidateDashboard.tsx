@@ -192,6 +192,10 @@ function CandidateDashboard() {
       navigate('/candidate/jobs/saved');
       return;
     }
+    if (page === 'My Applications') {
+      navigate('/candidate/applications');
+      return;
+    }
     setActivePage(page);
 
     if (page !== 'Dashboard') {

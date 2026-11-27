@@ -12,6 +12,7 @@ import {
   Bookmark,
   BriefcaseBusiness,
   Building2,
+  ArrowRight,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -27,6 +28,7 @@ import {
   X,
 } from "lucide-react";
 import { logout } from "../../../api/auth.api";
+import { candidateApplicationsApi, type CandidateApplication } from "../../../api/candidate-applications.api";
 import {
   candidateJobsApi,
   type CandidateJob,
@@ -78,10 +80,17 @@ function pretty(value: string) {
 function posted(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Recently posted";
-  const days = Math.max(
-    0,
-    Math.floor((Date.now() - date.getTime()) / 86400000),
-  );
+  const indiaDateNumber = (value: Date) => {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    }).formatToParts(value);
+    const part = (type: string) => Number(parts.find((item) => item.type === type)?.value);
+    return Date.UTC(part("year"), part("month") - 1, part("day")) / 86400000;
+  };
+  const days = Math.max(0, indiaDateNumber(new Date()) - indiaDateNumber(date));
   return days === 0
     ? "Posted today"
     : days === 1
@@ -144,6 +153,7 @@ export default function CandidateJobsPage() {
   const [selected, setSelected] = useState<CandidateJob | null>(null);
   const [related, setRelated] = useState<CandidateJob[]>([]);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [applicationsByJobId, setApplicationsByJobId] = useState<Map<string, CandidateApplication>>(new Map());
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [savingId, setSavingId] = useState("");
@@ -209,6 +219,15 @@ export default function CandidateJobsPage() {
     return () => {
       active = false;
     };
+  }, []);
+  useEffect(() => {
+    let active = true;
+    void candidateApplicationsApi.list({ page: 1, limit: 100 })
+      .then(({ applications }) => {
+        if (active) setApplicationsByJobId(new Map(applications.map((application) => [application.jobId, application])));
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
   }, []);
   useEffect(() => {
     let active = true;
@@ -385,6 +404,7 @@ export default function CandidateJobsPage() {
           else if (target === "Resume") navigate("/candidate/resume");
           else if (target === "Find Jobs") navigate("/candidate/jobs");
           else if (target === "Saved Jobs") navigate("/candidate/jobs/saved");
+          else if (target === "My Applications") navigate("/candidate/applications");
         }}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -664,9 +684,10 @@ export default function CandidateJobsPage() {
                             <span className="text-xs font-semibold text-[#424657]">
                               {salary(job)}
                             </span>
-                            <span className="text-[10px] text-[#85899a]">
-                              {posted(job.createdAt)}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              {applicationsByJobId.has(job._id) && <span className="rounded-full bg-[#e9f8ef] px-2.5 py-1 text-[10px] font-bold text-[#168254]">{pretty(applicationsByJobId.get(job._id)!.status)}</span>}
+                              <span className="text-[10px] text-[#85899a]">{posted(job.createdAt)}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -726,10 +747,15 @@ export default function CandidateJobsPage() {
                 <JobDetails
                   job={selected}
                   related={related}
+                  application={applicationsByJobId.get(selected._id) || null}
                   saved={selectedIsSaved}
                   saving={savingId === selected._id}
                   onSave={() => void toggleSave(selected)}
                   onShare={() => void shareJob(selected)}
+                  onApply={() => {
+                    const application = applicationsByJobId.get(selected._id);
+                    navigate(application ? `/candidate/applications/${application._id}` : `/candidate/jobs/${selected._id}/apply`);
+                  }}
                   onSelectRelated={selectJob}
                   onClose={() => navigate("/candidate/jobs")}
                 />
@@ -767,19 +793,23 @@ export default function CandidateJobsPage() {
 function JobDetails({
   job,
   related,
+  application,
   saved,
   saving,
   onSave,
   onShare,
+  onApply,
   onSelectRelated,
   onClose,
 }: {
   job: CandidateJob;
   related: CandidateJob[];
+  application: CandidateApplication | null;
   saved: boolean;
   saving: boolean;
   onSave: () => void;
   onShare: () => void;
+  onApply: () => void;
   onSelectRelated: (job: CandidateJob) => void;
   onClose: () => void;
 }) {
@@ -827,6 +857,9 @@ function JobDetails({
           >
             <Bookmark size={15} fill={saved ? "currentColor" : "none"} />
             {saved ? "Saved" : "Save Job"}
+          </button>
+          <button type="button" onClick={onApply} className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold text-white transition ${application ? "bg-[#168254] hover:bg-[#126b45]" : "bg-[#4133d3] hover:bg-[#3326bd]"}`}>
+            {application ? "View application" : "Apply Now"}<ArrowRight size={15}/>
           </button>
         </div>
         <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-xs text-[#59647d]">
@@ -888,6 +921,7 @@ function JobDetails({
             label="Posted"
             value={new Date(job.createdAt).toLocaleDateString(undefined, {
               dateStyle: "medium",
+              timeZone: "Asia/Kolkata",
             })}
           />
         </div>

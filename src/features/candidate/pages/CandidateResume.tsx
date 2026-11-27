@@ -160,6 +160,7 @@ export default function CandidateResumePage() {
     if (page === "My Profile") navigate("/candidate/profile");
     if (page === "Find Jobs") navigate("/candidate/jobs");
     if (page === "Saved Jobs") navigate("/candidate/jobs/saved");
+    if (page === "My Applications") navigate("/candidate/applications");
   };
 
   return (

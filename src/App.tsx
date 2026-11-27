@@ -4,6 +4,9 @@ import CandidateDashboard from "./features/candidate/pages/CandidateDashboard";
 import CandidateProfile from "./features/candidate/pages/CandidateProfile";
 import CandidateResume from "./features/candidate/pages/CandidateResume";
 import CandidateJobs from "./features/candidate/pages/CandidateJobs";
+import CandidateApplicationForm from "./features/candidate/pages/CandidateApplicationForm";
+import CandidateApplications from "./features/candidate/pages/CandidateApplications";
+import CandidateApplicationDetails from "./features/candidate/pages/CandidateApplicationDetails";
 import CandidateRegistration from "./features/auth/pages/CandidateRegistration";
 import EmailVerification from "./features/auth/pages/EmailVerification";
 import ForgotPassword from "./features/auth/pages/ForgotPassword";
@@ -13,6 +16,7 @@ import RecruiterProfile from "./features/recruiter/pages/RecruiterProfile";
 import RecruiterCompany from "./features/recruiter/pages/RecruiterCompany";
 import RecruiterVerification from "./features/recruiter/pages/RecruiterVerification";
 import RecruiterJobs from "./features/recruiter/pages/RecruiterJobs";
+import RecruiterApplications from "./features/recruiter/pages/RecruiterApplications";
 import RecruiterRegistration from "./features/auth/pages/RecruiterRegistration";
 import ResetPassword from "./features/auth/pages/ResetPassword";
 
@@ -78,6 +82,9 @@ function App() {
         <Route path="/candidate/profile" element={<CandidateProfile />} />
         <Route path="/candidate/profile/*" element={<CandidateProfile />} />
         <Route path="/candidate/resume" element={<CandidateResume />} />
+        <Route path="/candidate/applications" element={<CandidateApplications />} />
+        <Route path="/candidate/applications/:applicationId" element={<CandidateApplicationDetails />} />
+        <Route path="/candidate/jobs/:jobId/apply" element={<CandidateApplicationForm />} />
         <Route path="/candidate/jobs" element={<CandidateJobs />} />
       <Route path="/candidate/jobs/saved" element={<CandidateJobs />} />
         <Route path="/candidate/jobs/:jobId" element={<CandidateJobs />} />
@@ -88,6 +95,7 @@ function App() {
         <Route path="/recruiter/dashboard" element={<RecruiterDashboard />} />
         <Route path="/recruiter/profile" element={<RecruiterProfile />} />
         <Route path="/recruiter/jobs" element={<RecruiterJobs />} />
+        <Route path="/recruiter/applications" element={<RecruiterApplications />} />
         <Route path="/recruiter/company" element={<RecruiterCompany />} />
         <Route
           path="/recruiter/verification"

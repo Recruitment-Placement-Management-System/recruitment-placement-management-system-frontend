@@ -339,6 +339,7 @@ export default function CandidateProfilePage() {
       gender,
       nationality,
       maritalStatus,
+      phone,
       city,
       state,
       country,
@@ -369,6 +370,7 @@ export default function CandidateProfilePage() {
         gender,
         nationality,
         maritalStatus,
+        phone,
       });
       const location = compact({ city, state, country, postalCode });
       const contactLinks = compact({
@@ -498,6 +500,7 @@ export default function CandidateProfilePage() {
     else if (page === "Resume") navigate("/candidate/resume");
     else if (page === "Find Jobs") navigate("/candidate/jobs");
     else if (page === "Saved Jobs") navigate("/candidate/jobs/saved");
+    else if (page === "My Applications") navigate("/candidate/applications");
     else if (page === "My Profile") window.scrollTo({ top: 0, behavior: "smooth" });
     else {
       setNotice(`${page} page navigation will be connected when the route is implemented.`);
@@ -714,6 +717,7 @@ export default function CandidateProfilePage() {
                             "Marital status",
                             profile.personalInfo?.maritalStatus,
                           ],
+                          ["Phone number", profile.personalInfo?.phone],
                           [
                             "Location",
                             [
@@ -1187,6 +1191,7 @@ export default function CandidateProfilePage() {
                     { key: "gender", label: "Gender" },
                     { key: "nationality", label: "Nationality" },
                     { key: "maritalStatus", label: "Marital status" },
+                    { key: "phone", label: "Phone number", type: "tel" },
                     { key: "city", label: "City" },
                     { key: "state", label: "State / region" },
                     { key: "country", label: "Country" },
